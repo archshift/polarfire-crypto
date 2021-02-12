@@ -1,0 +1,9 @@
+[package]
+name = "polarfire-softaes"
+version = "0.1.0"
+authors = ["Gui Andrade <gh@archshift.com>"]
+edition = "2018"
+
+[dependencies]
+bitutils = "3.0"
+memmap = "0.7"
