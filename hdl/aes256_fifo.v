@@ -51,6 +51,8 @@ module aes256_fifo(
     
     always @* begin
         aes_in_ready = 0;
+        aes_pending_blocks_next = aes_pending_blocks;
+
         if (aes_pending_blocks - aes_rd_trigger < 5'd29) begin
             aes_pending_blocks_next = aes_pending_blocks - aes_rd_trigger + aes_wr_trigger;
             aes_in_ready = 1;

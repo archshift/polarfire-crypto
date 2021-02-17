@@ -25,12 +25,12 @@ module crypto_accel(
     output reg [1:0] rdresp_dat,
     
     // AES interface signals
-    output reg [255:0] aes_key,
+    output [255:0] aes_key,
     output [127:0] aes_ctr,
     input aes_in_ready,
-    output reg aes_in_valid,
-    output reg [127:0] aes_in_block,
-    output reg aes_out_ready,
+    output aes_in_valid,
+    output [127:0] aes_in_block,
+    output aes_out_ready,
     input aes_out_valid,
     input [127:0] aes_out_block,
     input aes_fifo_empty
@@ -43,7 +43,7 @@ module crypto_accel(
 
 reg [1:0] state, next_state;
 reg [37:0] addr, next_addr;
-reg [15:0] reg_offs = addr[15:0];
+wire [15:0] reg_offs = addr[15:0];
 
 
 /***************************
@@ -52,7 +52,7 @@ reg [15:0] reg_offs = addr[15:0];
 
 `define REG_AES_CTL (16'h0000)
 reg fifo_in_full;
-reg fifo_out_empty;
+wire fifo_out_empty;
 reg aes_busy;
 wire [31:0] aes_ctl = {
     /* bit 31-3 */ 29'b0,
@@ -64,7 +64,7 @@ wire [31:0] aes_ctl = {
 `define REG_AES_FIFO_IN (16'h0004)
 reg aes_in_word_valid;
 wire aes_in_word_ready;
-reg aes_in_fifo_empty;
+wire aes_in_fifo_empty;
 words_block aes_in_words_block (
     .clk(clk),
     .rst(rst),

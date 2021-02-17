@@ -145,7 +145,7 @@ task read_io(input [37:0] address, output [31:0] data);
         // Check the read response
         `assert(rdresp_dat == 2'b0);
         rd_ready = 1'b1;
-	data = rd_dat;
+	    data = rd_dat;
         @(posedge SYSCLK);
         rd_ready = 0;
     end

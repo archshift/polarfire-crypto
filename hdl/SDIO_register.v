@@ -9,8 +9,8 @@ module
         input wire logic [31:0] pwdata,
         output     logic [31:0] prdata,
         output     logic        pready,
-        output     logic        pslverr,
-        output     logic        SDIO_control	  
+        output                  pslverr,
+        output                  SDIO_control	  
         );                      
         
         //-----------------------------------------------------------------------------

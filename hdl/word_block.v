@@ -25,10 +25,11 @@ always @* begin
     block_ren = block_ready & block_valid;
     word_ready = !block_valid | block_ren;
     block_wen = word_valid & word_ready;
-    block0_wen = block_wen & (idx == 0);
-    block1_wen = block_wen & (idx == 1);
-    block2_wen = block_wen & (idx == 2);
-    block3_wen = block_wen & (idx == 3);
+    // Reverse the word order to accomodate how the AES block expects
+    block0_wen = block_wen & (idx == 3);
+    block1_wen = block_wen & (idx == 2);
+    block2_wen = block_wen & (idx == 1);
+    block3_wen = block_wen & (idx == 0);
     empty = !block_valid & idx == 0;
   
     next_idx = idx + 1;
@@ -61,7 +62,7 @@ module block_words(
     input rst,
     
     output reg word_valid,
-    input reg word_ready,
+    input word_ready,
     output reg [31:0] word,
     
     output reg block_ready,
@@ -85,11 +86,12 @@ always @* begin
     block_ready = ((idx == 2'd3) & word_ren) | empty;
     block_wen = block_valid & block_ready;
     
+    // Reverse the word order to accomodate how the AES block expects
     case (idx)
-    2'd0 : word = block0;
-    2'd1 : word = block1;
-    2'd2 : word = block2;
-    2'd3 : word = block3;
+    2'd3 : word = block0;
+    2'd2 : word = block1;
+    2'd1 : word = block2;
+    2'd0 : word = block3;
     endcase
 end
 

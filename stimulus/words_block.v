@@ -111,7 +111,7 @@ begin
     word_valid = 1'b1;
     `assert(word_ready);
     `assert(block_valid);
-    `assert(block == 128'hF9F9F9F9A0A0A0A089ABCDEF01234567);
+    `assert(block == 128'h0123456789ABCDEFA0A0A0A0F9F9F9F9)
     @(posedge SYSCLK); #1;
     
     // Word 6
@@ -141,7 +141,7 @@ begin
     block_ready = 1'b1;
     `assert(word_ready);
     `assert(block_valid);
-    `assert(block == 128'hE8E8E8E8B1B1B1B1FEDCBA9876543210);
+    `assert(block == 128'h76543210FEDCBA98B1B1B1B1E8E8E8E8);
     @(posedge SYSCLK);
     
     block_ready = 0;
@@ -206,7 +206,7 @@ begin
     word = 32'h76543210;
     `assert(word_ready);
     `assert(block_valid);
-    `assert(block == 128'hF9F9F9F9A0A0A0A089ABCDEF01234567);
+    `assert(block == 128'h0123456789ABCDEFA0A0A0A0F9F9F9F9);
     @(posedge SYSCLK);
     
     block_ready = 0;
