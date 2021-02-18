@@ -1,6 +1,6 @@
-/// FIFO adapter to transform 4 consecutive 32-bit words into 1 128-bit block.
+/// FIFO adapter to transform 4 consecutive LE 32-bit words into 1 BE 128-bit block.
 /// Maximum throughput: 1 32-bit word per cycle, or 1 block per 4 cycles.
-module words_block(
+module be_block_builder(
     input clk,
     input rst,
     
@@ -19,6 +19,7 @@ reg [1:0] idx, next_idx;
 reg next_block_valid;
 reg block_ren, block_wen, block0_wen, block1_wen, block2_wen, block3_wen;
 reg [31:0] block0, block1, block2, block3;
+wire [31:0] word_be = {word[7:0], word[15:8], word[23:16], word[31:24]};
 assign block = {block3, block2, block1, block0};
 
 always @* begin
@@ -46,24 +47,24 @@ end
         if (block_wen) block_valid <= next_block_valid;
         else if (block_ren) block_valid <= 0;
         
-        if (block0_wen) block0 <= word;
-        if (block1_wen) block1 <= word;
-        if (block2_wen) block2 <= word;
-        if (block3_wen) block3 <= word;
+        if (block0_wen) block0 <= word_be;
+        if (block1_wen) block1 <= word_be;
+        if (block2_wen) block2 <= word_be;
+        if (block3_wen) block3 <= word_be;
     end
 end
 
 endmodule
 
 
-/// FIFO adapter to transform 1 128-bit word into 4 consecutive 32-bit words.
-module block_words(
+/// FIFO adapter to transform 1 BE 128-bit word into 4 consecutive LE 32-bit words.
+module be_block_splitter(
     input clk,
     input rst,
     
     output reg word_valid,
     input word_ready,
-    output reg [31:0] word,
+    output [31:0] word,
     
     output reg block_ready,
     input block_valid,
@@ -76,7 +77,9 @@ reg [1:0] idx, next_idx;
 reg [127:0] block_stored;
 reg word_ren, block_wen;
 wire [31:0] block0, block1, block2, block3;
+reg [31:0] word_be;
 assign {block3, block2, block1, block0} = block_stored;
+assign word = {word_be[7:0], word_be[15:8], word_be[23:16], word_be[31:24]};
 
 assign empty = !word_valid;
 
@@ -88,10 +91,10 @@ always @* begin
     
     // Reverse the word order to accomodate how the AES block expects
     case (idx)
-    2'd3 : word = block0;
-    2'd2 : word = block1;
-    2'd1 : word = block2;
-    2'd0 : word = block3;
+    2'd3 : word_be = block0;
+    2'd2 : word_be = block1;
+    2'd1 : word_be = block2;
+    2'd0 : word_be = block3;
     endcase
 end
 

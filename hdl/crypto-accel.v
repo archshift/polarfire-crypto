@@ -65,7 +65,7 @@ wire [31:0] aes_ctl = {
 reg aes_in_word_valid;
 wire aes_in_word_ready;
 wire aes_in_fifo_empty;
-words_block aes_in_words_block (
+be_block_builder aes_in_builder (
     .clk(clk),
     .rst(rst),
     
@@ -84,7 +84,7 @@ words_block aes_in_words_block (
 reg aes_out_word_ready;
 wire aes_out_word_valid;
 wire [31:0] aes_out_word;
-block_words aes_out_block_words (
+be_block_splitter aes_out_splitter (
     .clk(clk),
     .rst(rst),
     
