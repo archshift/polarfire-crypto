@@ -1,124 +1,83 @@
-use std::{iter, u32};
-use std::fs::OpenOptions;
+mod crypt;
 
-use bitutils::bf;
-use memmap::{MmapMut, MmapOptions};
+use std::{str, u32};
+use std::io::{Read, stdin, BufReader, BufRead};
+use std::fs::File;
 
-#[derive(Copy, Clone, Debug)]
-enum AesReg {
-    Ctrl = 0,
-    IFifo = 1,
-    OFifo = 2,
-    Ctr = 4,
-    Key = 8
-}
+fn hex_to_words(hex: String, out: &mut [u32]) {
+    let new_hex = hex.replace(" ", "");
+    let hex = new_hex.trim();
 
-const fn aes_reg_mut(offs: AesReg) -> *mut u32 {
-    const AES_BASE: usize = 0x60010000;
-    (AES_BASE as usize + (offs as usize) * 4) as *mut u32
-}
-const fn aes_reg(offs: AesReg) -> *const u32 {
-    aes_reg_mut(offs)
-}
-
-const AES_CTRL: *mut u32 = aes_reg_mut(AesReg::Ctrl);
-const AES_IFIFO: *mut u32 = aes_reg_mut(AesReg::IFifo);
-const AES_OFIFO: *const u32 = aes_reg(AesReg::OFifo);
-const AES_CTR: *mut u32 = aes_reg_mut(AesReg::Ctr);
-const AES_KEY: *mut u32 = aes_reg_mut(AesReg::Key);
-
-bf!(AesCtrl[u32] {
-    reset : 31:31,
-    ofifo_empty : 2:2,
-    ififo_full : 1:1,
-    busy : 0:0
-});
-
-type Key = [u32; 8];
-type Ctr = [u32; 4];
-type Block = [u32; 4];
-
-unsafe fn write_key(key: Key) {
-    for i in 0..8 {
-        AES_KEY.add(i).write_volatile(key[i]);
+    let bytes = hex.as_bytes()
+        .chunks_exact(8)
+        .map(|c| u32::from_str_radix(
+                str::from_utf8(c).expect("UTF-8 error!"),
+                16)
+                .expect("Byte parsing error!"));
+    
+    for (dst, src) in out.iter_mut().zip(bytes) {
+        *dst = src;
     }
 }
-unsafe fn write_ctr(ctr: [u32; 4]) {
-    for i in 0..4 {
-        AES_CTR.add(i).write_volatile(ctr[i]);
-    }
+
+struct HexRowPrinter {
+    seek: usize
 }
-fn take_word(data: &mut impl Iterator<Item=u8>) -> Option<u32> {
-    let array = [data.next()?, data.next()?, data.next()?, data.next()?];
-    Some(u32::from_le_bytes(array))
-}
-unsafe fn write_block(data: &mut impl Iterator<Item=u8>) -> Option<()> {
-    let mut block = data.take(16);
-    for i in 0..4 {
-        AES_IFIFO.write_volatile(take_word(&mut block)?);
-    }
-    Some(())
-}
-unsafe fn read_block() -> Block {
-    [
-        AES_OFIFO.read_volatile(),
-        AES_OFIFO.read_volatile(),
-        AES_OFIFO.read_volatile(),
-        AES_OFIFO.read_volatile()
-    ]
-}
-unsafe fn read_write_block(data: &mut impl Iterator<Item=u8>) -> Option<Block> {
-    let ctr = AesCtrl::new(AES_CTRL.read_volatile());
-    match (ctr.ofifo_empty(), ctr.ififo_full()) {
-        (0, 0) => {
-            write_block(data);
-            Some(read_block())
-        }
-        (0, 1) => {
-            Some(read_block())
-        }
-        (1, 0) => {
-            if write_block(data).is_none() && ctr.busy() == 0 {
-                None
-            } else {
-                Some(read_block())
+impl HexRowPrinter {
+    fn new() -> Self { Self { seek: 0 } }
+
+    fn append(&mut self, mut bytes: &[u8]) {
+        while bytes.len() != 0 {
+            print!("{:02x}", bytes[0]);
+            if self.seek % 40 == 39 {
+                print!("\n");
+            } else if self.seek % 4 == 3 {
+                print!(" ");
             }
+            bytes = &bytes[1..];
+            self.seek += 1;
         }
-        (1, 1) => {
-            Some(read_block())
-        }
-        _ => unreachable!()
-    }
-}
-
-fn crypt(key: Key, ctr: Ctr, data: &[u8]) {
-    unsafe {
-        write_key(key);
-        write_ctr(ctr);
-    }
-    let data_blocks = (data.len() + 15) / 16;
-    let data_padding = data_blocks * 16 - data.len();
-    let mut padded_data = data.iter().copied()
-        .chain(iter::repeat(0u8).take(data_padding));
-
-    while let Some(block) = unsafe { read_write_block(&mut padded_data) } {}
-}
-
-fn map() -> MmapMut {
-    let memfile = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open("/dev/mem")
-        .expect("Failed to open /dev/mem!");
-
-    unsafe {
-        MmapOptions::new()
-            .offset(0x60010000)
-            .len(0x10000)
-            .map_mut(&memfile)
-            .expect("Failed to map AES MMIO!")
     }
 }
 
 fn main() {
+    let mut key_str = String::new();
+    let mut ctr_str = String::new();
+
+    File::open("key.hex")
+        .expect("Failed to open key!")
+        .read_to_string(&mut key_str)
+        .expect("Failed to read key!");
+    File::open("ctr.hex")
+        .expect("Failed to open ctr!")
+        .read_to_string(&mut ctr_str)
+        .expect("Failed to read ctr!");
+
+    let mut key = [0u32; 8];
+    let mut ctr = [0u32; 4];
+
+    hex_to_words(key_str, &mut key);
+    hex_to_words(ctr_str, &mut ctr);
+
+    let stdin = stdin();
+    let stdin = stdin.lock();
+    let mut stdin = BufReader::new(stdin);
+    let mut output = vec![0; stdin.capacity()];
+    let mut printer = HexRowPrinter::new();
+    
+    while let Ok(input) = stdin.fill_buf() {
+        let in_len = input.len();
+        if in_len == 0 { break }
+        let output_sl = &mut output[..in_len];
+
+        crypt::init();
+        crypt::crypt(key, ctr, input, output_sl);
+
+        // Print output in word columns; 10 words per row. 
+        printer.append(output_sl);
+        
+        stdin.consume(in_len);
+    }
+
+    println!();
 }
