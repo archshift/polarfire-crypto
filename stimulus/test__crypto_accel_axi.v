@@ -1,4 +1,5 @@
 `timescale 1ns/100ps
+`include "assert.v"
 
 module test__crypto_accel_axi;
 
@@ -61,16 +62,6 @@ crypto_accel crypto_accel(
     .rd_dat(rd_dat),
     .rdresp_dat(rdresp_dat)
 );
-
-task assert_ (input cond);
-    begin
-        if (!cond) begin
-            $monitor("%g: ASSERTION FAILED", $time);
-            $stop;
-        end
-    end
-endtask
-`define assert(cond) assert_(cond)
 
 task write_io(input [37:0] address, input [31:0] data);
     begin

@@ -1,4 +1,5 @@
 `timescale 1ns/100ps
+`include "assert.v"
 
 module test__aes256_fifo;
 
@@ -53,8 +54,6 @@ aes256_fifo dut (
 
 always @(SYSCLK)
     #(SYSCLK_PERIOD) $display("%t: %h   :   %h : %h : %h : %h : %h : %h : %h", $time, aes_in_block, dut.aes_cipher_block, dut.aes_pipeline_block, dut.done_fifo.wr_data_i, dut.aes_pipeline_valid, dut.aes_rd_trigger, dut.aes_pending_blocks, aes_out_block);
-
-`define assert(cond) if (!(cond)) begin $display("assertion failed: %s", `"cond`"); $finish; end //assert(cond)
 
 initial begin
     aes_key = 0;

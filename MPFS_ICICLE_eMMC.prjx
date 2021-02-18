@@ -1344,13 +1344,13 @@ SIZE="1050"
 ENDFILE
 VALUE "<project>/component/work/crypto_mmio/crypto_mmio.cxf,actgen_cxf"
 STATE="utd"
-TIME="1613000123"
+TIME="1613069537"
 SIZE="14871"
 ENDFILE
 VALUE "<project>/component/work/crypto_mmio/crypto_mmio.v,hdl"
 STATE="utd"
-TIME="1613000123"
-SIZE="14861"
+TIME="1613069537"
+SIZE="15003"
 PARENT="<project>/component/work/crypto_mmio/crypto_mmio.cxf"
 IS_READONLY="TRUE"
 ENDFILE
@@ -1949,12 +1949,12 @@ SIZE="2016"
 ENDFILE
 VALUE "<project>/component/work/wrap_test_aes256_fifo/wrap_test_aes256_fifo.cxf,actgen_cxf"
 STATE="utd"
-TIME="1612401164"
+TIME="1613069341"
 SIZE="1348"
 ENDFILE
 VALUE "<project>/component/work/wrap_test_aes256_fifo/wrap_test_aes256_fifo.v,tb_hdl"
 STATE="utd"
-TIME="1612401164"
+TIME="1613069341"
 SIZE="563"
 PARENT="<project>/component/work/wrap_test_aes256_fifo/wrap_test_aes256_fifo.cxf"
 IS_READONLY="TRUE"
@@ -2043,13 +2043,13 @@ SIZE="218"
 ENDFILE
 VALUE "<project>/constraint/MPFS_ICICLE_KIT_BASE_DESIGN_derived_constraints.sdc,sdc"
 STATE="utd"
-TIME="1613000408"
+TIME="1613078975"
 SIZE="2923"
 ENDFILE
 VALUE "<project>/hdl/aes256_fifo.v,hdl"
 STATE="utd"
-TIME="1613016476"
-SIZE="1758"
+TIME="1613590181"
+SIZE="2007"
 ENDFILE
 VALUE "<project>/hdl/aes_256.v,hdl"
 STATE="utd"
@@ -2058,13 +2058,13 @@ SIZE="4474"
 ENDFILE
 VALUE "<project>/hdl/crypto-accel.v,hdl"
 STATE="utd"
-TIME="1612402252"
-SIZE="4371"
+TIME="1613549458"
+SIZE="5119"
 ENDFILE
 VALUE "<project>/hdl/fifo.v,hdl"
 STATE="utd"
-TIME="1613015878"
-SIZE="2239"
+TIME="1613073921"
+SIZE="2212"
 ENDFILE
 VALUE "<project>/hdl/round.v,hdl"
 STATE="utd"
@@ -2073,7 +2073,7 @@ SIZE="2640"
 ENDFILE
 VALUE "<project>/hdl/SDIO_register.v,hdl"
 STATE="utd"
-TIME="1612058383"
+TIME="1613548668"
 SIZE="2098"
 ENDFILE
 VALUE "<project>/hdl/shift_reg.v,hdl"
@@ -2083,8 +2083,8 @@ SIZE="708"
 ENDFILE
 VALUE "<project>/hdl/simple_dpram_sclk.v,hdl"
 STATE="utd"
-TIME="1612213011"
-SIZE="1504"
+TIME="1613073911"
+SIZE="1085"
 ENDFILE
 VALUE "<project>/hdl/table.v,hdl"
 STATE="utd"
@@ -2093,8 +2093,8 @@ SIZE="14744"
 ENDFILE
 VALUE "<project>/hdl/word_block.v,hdl"
 STATE="utd"
-TIME="1613013629"
-SIZE="2738"
+TIME="1613548380"
+SIZE="2858"
 ENDFILE
 VALUE "<project>/simulation/axi_mstr_ram_init.mem,sim"
 STATE="utd"
@@ -2104,7 +2104,7 @@ PARENT="<project>/component/Actel/DirectCore/COREAXI4DMACONTROLLER/2.0.100/COREA
 ENDFILE
 VALUE "<project>/simulation/bfmtovec_compile.log,log"
 STATE="utd"
-TIME="1612401375"
+TIME="1613073946"
 SIZE="391"
 ENDFILE
 VALUE "<project>/simulation/bfmtovec_compile.tcl,sim"
@@ -2174,7 +2174,7 @@ PARENT="<project>/component/work/ICICLE_MSS/ICICLE_MSS.cxf"
 ENDFILE
 VALUE "<project>/simulation/run.do,do"
 STATE="utd"
-TIME="1612401374"
+TIME="1613073945"
 SIZE="34232"
 ENDFILE
 VALUE "<project>/simulation/slave_0_ram_init.mem,sim"
@@ -2213,42 +2213,42 @@ SIZE="4846"
 ENDFILE
 VALUE "<project>/stimulus/crypto_accel_axi.v,tb_hdl"
 STATE="utd"
-TIME="1612287889"
-SIZE="4016"
+TIME="1613198669"
+SIZE="4020"
 ENDFILE
 VALUE "<project>/stimulus/test__aes256_fifo.v,tb_hdl"
 STATE="utd"
-TIME="1612401353"
-SIZE="1687"
+TIME="1613590302"
+SIZE="2273"
 ENDFILE
 VALUE "<project>/stimulus/words_block.v,tb_hdl"
 STATE="utd"
-TIME="1612323588"
-SIZE="4352"
+TIME="1613166091"
+SIZE="4351"
 ENDFILE
 VALUE "<project>/synthesis/MPFS_ICICLE_KIT_BASE_DESIGN.so,so"
 STATE="utd"
-TIME="1613016666"
+TIME="1613088153"
 SIZE="281"
 ENDFILE
 VALUE "<project>/synthesis/MPFS_ICICLE_KIT_BASE_DESIGN.vm,syn_vm"
 STATE="utd"
-TIME="1613016650"
-SIZE="9709964"
+TIME="1613088130"
+SIZE="18353754"
 ENDFILE
 VALUE "<project>/synthesis/MPFS_ICICLE_KIT_BASE_DESIGN_syn.prj,prj"
 STATE="utd"
-TIME="1613016666"
-SIZE="30627"
+TIME="1613088153"
+SIZE="30823"
 ENDFILE
 VALUE "<project>/synthesis/MPFS_ICICLE_KIT_BASE_DESIGN_vm.sdc,syn_sdc"
 STATE="utd"
-TIME="1613016652"
+TIME="1613088136"
 SIZE="2612"
 ENDFILE
 VALUE "<project>/synthesis/synwork/layer0.so,so"
 STATE="utd"
-TIME="1613015909"
+TIME="1613082741"
 SIZE="154"
 ENDFILE
 ENDLIST
@@ -2649,6 +2649,7 @@ LIST "aes256_fifo::work","hdl/aes256_fifo.v","FALSE","FALSE"
 SUBBLOCK "aes_256::work","hdl/aes_256.v","FALSE","FALSE"
 SUBBLOCK "fifo::work","hdl/fifo.v","FALSE","FALSE"
 SUBBLOCK "shift_reg::work","hdl/shift_reg.v","FALSE","FALSE"
+SUBBLOCK "shift_reg::work","hdl/shift_reg.v","FALSE","FALSE"
 ENDLIST
 LIST "aes_256::work","hdl/aes_256.v","FALSE","FALSE"
 SUBBLOCK "expand_key_type_A_256::work","hdl/aes_256.v","FALSE","FALSE"
@@ -2898,6 +2899,7 @@ LIST "CORERESET_CORERESET_0_CORERESET_PF::work","component/work/CORERESET/CORERE
 ENDLIST
 LIST "crypto_accel::work","hdl/crypto-accel.v","FALSE","FALSE"
 SUBBLOCK "block_words::work","hdl/word_block.v","FALSE","FALSE"
+SUBBLOCK "key_ram::work","","FALSE","FALSE"
 SUBBLOCK "words_block::work","hdl/word_block.v","FALSE","FALSE"
 ENDLIST
 LIST "crypto_mmio::work","component/work/crypto_mmio/crypto_mmio.v","TRUE","FALSE"
@@ -3183,6 +3185,7 @@ ENDLIST
 LIST "caxi4interconnect_WriteDataMux::work","component/Actel/DirectCore/COREAXI4INTERCONNECT/2.8.103/rtl/vlog/core/Axi4CrossBar/WriteDataMux.v","FALSE","FALSE"
 ENDLIST
 LIST "fifo::work","hdl/fifo.v","FALSE","FALSE"
+SUBBLOCK "simple_dpram_sclk::work","hdl/simple_dpram_sclk.v","FALSE","FALSE"
 ENDLIST
 LIST "LSRAM_COREAXI4SRAM_0_COREAXI4SRAM::work","component/work/LSRAM/COREAXI4SRAM_0/rtl/vlog/core/CoreAXI4SRAM.v","FALSE","FALSE"
 SUBBLOCK "LSRAM_COREAXI4SRAM_0_CoreAXI4SRAM_MAINCTRL_ECC::work","component/work/LSRAM/COREAXI4SRAM_0/rtl/vlog/core/CoreAXI4SRAM_MAINCTRL_ECC.v","FALSE","FALSE"
@@ -3203,6 +3206,8 @@ ENDLIST
 LIST "PF_SRAM_AHBL_AXI_C0_COREAXI4SRAM_0_CoreAXI4SRAM_SLVIF::work","component/work/PF_SRAM_AHBL_AXI_C0/COREAXI4SRAM_0/rtl/vlog/core/CoreAXI4SRAM_SLVIF.v","FALSE","FALSE"
 ENDLIST
 LIST "shift_reg::work","hdl/shift_reg.v","FALSE","FALSE"
+ENDLIST
+LIST "simple_dpram_sclk::work","hdl/simple_dpram_sclk.v","FALSE","FALSE"
 ENDLIST
 LIST "caxi4interconnect_AddressController::work","component/Actel/DirectCore/COREAXI4INTERCONNECT/2.8.103/rtl/vlog/core/Axi4CrossBar/AddressController.v","FALSE","FALSE"
 SUBBLOCK "caxi4interconnect_RoundRobinArb::work","component/Actel/DirectCore/COREAXI4INTERCONNECT/2.8.103/rtl/vlog/core/Axi4CrossBar/RoundRobinArb.v","FALSE","FALSE"
@@ -3288,6 +3293,8 @@ SUBBLOCK "caxi4interconnect_SlvAxi4ProtConvAXI4ID::work","component/Actel/Direct
 ENDLIST
 LIST "caxi4interconnect_TransactionController::work","component/Actel/DirectCore/COREAXI4INTERCONNECT/2.8.103/rtl/vlog/core/Axi4CrossBar/TransactionController.v","FALSE","FALSE"
 SUBBLOCK "caxi4interconnect_BitScan0::work","component/Actel/DirectCore/COREAXI4INTERCONNECT/2.8.103/rtl/vlog/core/Axi4CrossBar/BitScan0.v","FALSE","FALSE"
+ENDLIST
+LIST "shift_reg::work","hdl/shift_reg.v","FALSE","FALSE"
 ENDLIST
 LIST "caxi4interconnect_DualPort_RAM_SyncWr_SyncRd::work","component/Actel/DirectCore/COREAXI4INTERCONNECT/2.8.103/rtl/vlog/core/Axi4CrossBar/DualPort_Ram_SyncWr_SyncRd.v","FALSE","FALSE"
 ENDLIST
@@ -3420,6 +3427,8 @@ SUBBLOCK "INIT_MONITOR_INIT_MONITOR_0_PFSOC_INIT_MONITOR::work","component/work/
 ENDLIST
 LIST "INIT_MONITOR_INIT_MONITOR_0_PFSOC_INIT_MONITOR::work","component/work/INIT_MONITOR/INIT_MONITOR_0/INIT_MONITOR_INIT_MONITOR_0_PFSOC_INIT_MONITOR.v","FALSE","FALSE"
 ENDLIST
+LIST "key_ram::work","","FALSE","FALSE"
+ENDLIST
 LIST "LSRAM::work","component/work/LSRAM/LSRAM.v","TRUE","FALSE"
 SUBBLOCK "LSRAM_PF_TPSRAM_AHB_AXI_0_PF_TPSRAM::work","component/work/LSRAM/PF_TPSRAM_AHB_AXI_0/LSRAM_PF_TPSRAM_AHB_AXI_0_PF_TPSRAM.v","FALSE","FALSE"
 SUBBLOCK "LSRAM_COREAXI4SRAM_0_COREAXI4SRAM::work","component/work/LSRAM/COREAXI4SRAM_0/rtl/vlog/core/CoreAXI4SRAM.v","FALSE","FALSE"
@@ -3510,8 +3519,6 @@ LIST "S4::work","hdl/table.v","FALSE","FALSE"
 SUBBLOCK "S::work","hdl/table.v","FALSE","FALSE"
 ENDLIST
 LIST "sdio_register::work","hdl/SDIO_register.v","FALSE","FALSE"
-ENDLIST
-LIST "simple_dpram_sclk::work","hdl/simple_dpram_sclk.v","FALSE","FALSE"
 ENDLIST
 LIST "T::work","hdl/table.v","FALSE","FALSE"
 SUBBLOCK "S::work","hdl/table.v","FALSE","FALSE"
@@ -4496,8 +4503,7 @@ ENDLIST
 LIST "test__crypto_accel_axi::work","stimulus/crypto_accel_axi.v","FALSE","TRUE"
 SUBBLOCK "crypto_accel::work","hdl/crypto-accel.v","FALSE","FALSE"
 ENDLIST
-LIST "test__words_block::work","stimulus/words_block.v","FALSE","TRUE"
-SUBBLOCK "words_block::work","hdl/word_block.v","FALSE","FALSE"
+LIST "test__words_block::work","","FALSE","FALSE"
 ENDLIST
 LIST "Test_bench::work","component/work/Test_bench/Test_bench.cxf","TRUE","TRUE"
 SUBBLOCK "CLK_GEN_C0::work","component/work/CLK_GEN_C0/CLK_GEN_C0.v","TRUE","TRUE"
@@ -4539,7 +4545,7 @@ LIST "wrap_test_aes256_fifo::work","component/work/wrap_test_aes256_fifo/wrap_te
 SUBBLOCK "test__aes256_fifo::work","stimulus/test__aes256_fifo.v","FALSE","TRUE"
 ENDLIST
 LIST "wrap_test_words_block::work","component/work/wrap_test_words_block/wrap_test_words_block.v","TRUE","TRUE"
-SUBBLOCK "test__words_block::work","stimulus/words_block.v","FALSE","TRUE"
+SUBBLOCK "test__words_block::work","","FALSE","FALSE"
 ENDLIST
 LIST "CoreAPB3::COREAPB3_LIB","component/Actel/DirectCore/CoreAPB3/4.1.100/rtl/vlog/core/coreapb3.v","FALSE","FALSE"
 SUBBLOCK "COREAPB3_MUXPTOB3::COREAPB3_LIB","component/Actel/DirectCore/CoreAPB3/4.1.100/rtl/vlog/core/coreapb3_muxptob3.v","FALSE","FALSE"

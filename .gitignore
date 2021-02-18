@@ -1,0 +1,4 @@
+synthesis/
+stimulus/build/
+*.log
+*.msg

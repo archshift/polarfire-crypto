@@ -1,4 +1,5 @@
 `timescale 1ns/100ps
+`include "assert.v"
 
 module test__words_block;
 
@@ -49,16 +50,6 @@ words_block words_block(
     .block_ready(block_ready),
     .block(block)
 );
-
-task assert_ (input cond);
-    begin
-        if (!cond) begin
-            $monitor("%g: ASSERTION FAILED", $time);
-            $stop;
-        end
-    end
-endtask
-`define assert(cond) if (!(cond)) $stop
 
 initial
 begin
@@ -111,7 +102,7 @@ begin
     word_valid = 1'b1;
     `assert(word_ready);
     `assert(block_valid);
-    `assert(block == 128'h0123456789ABCDEFA0A0A0A0F9F9F9F9)
+    `assert(block == 128'h0123456789ABCDEFA0A0A0A0F9F9F9F9);
     @(posedge SYSCLK); #1;
     
     // Word 6
@@ -154,8 +145,6 @@ begin
     #(SYSCLK_PERIOD * 5);
     NSYSRESET = 1;
     #(SYSCLK_PERIOD * 5);
-    
-    block_ready = 1'b1;
     
     // Word 1
     #1;
@@ -203,13 +192,15 @@ begin
     
     // Word 5; Read out the block
     #1;
+    block_ready = 1'b1;
     word = 32'h76543210;
-    `assert(word_ready);
     `assert(block_valid);
     `assert(block == 128'h0123456789ABCDEFA0A0A0A0F9F9F9F9);
     @(posedge SYSCLK);
-    
+
     block_ready = 0;
+
+    $finish;
 end
 
 endmodule
