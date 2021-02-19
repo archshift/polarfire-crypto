@@ -4,6 +4,13 @@ version = "0.1.0"
 authors = ["Gui Andrade <gh@archshift.com>"]
 edition = "2018"
 
+[lib]
+crate-type = ["staticlib"]
+
+[[bin]]
+name = "polarfire-softaes"
+path = "./src/main.rs"
+
 [features]
 default = []
 sw = ["aes-ctr"]

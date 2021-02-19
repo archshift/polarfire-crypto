@@ -1,4 +1,3 @@
-use std::iter;
 use std::fs::OpenOptions;
 
 use bitutils::bf;
