@@ -33,7 +33,8 @@ module crypto_accel(
     output aes_out_ready,
     input aes_out_valid,
     input [127:0] aes_out_block,
-    input aes_fifo_empty
+    input aes_fifo_empty,
+    output aes_rst
     );
 
 `define STATE_EXPECT_ADDR 2'b00
@@ -54,12 +55,22 @@ wire [15:0] reg_offs = addr[15:0];
 reg fifo_in_full;
 wire fifo_out_empty;
 reg aes_busy;
-wire [31:0] aes_ctl = {
+wire [31:0] aes_ctl_out = {
     /* bit 31-3 */ 29'b0,
     /* bit 2    */ fifo_in_full,
     /* bit 1    */ fifo_out_empty,
     /* bit 0    */ aes_busy
 };
+
+reg aes_ctl_wen;
+reg [31:0] aes_ctl;
+wire soft_rst, auto_increment;
+assign {
+    /* bit 31 */ soft_rst,
+    /* bit 30 */ auto_increment
+} = aes_ctl[31:30];
+
+assign aes_rst = rst | soft_rst;
 
 `define REG_AES_FIFO_IN (16'h0004)
 reg aes_in_word_valid;
@@ -67,7 +78,7 @@ wire aes_in_word_ready;
 wire aes_in_fifo_empty;
 be_block_builder aes_in_builder (
     .clk(clk),
-    .rst(rst),
+    .rst(aes_rst),
     
     .word_valid(aes_in_word_valid),
     .word_ready(aes_in_word_ready),
@@ -86,7 +97,7 @@ wire aes_out_word_valid;
 wire [31:0] aes_out_word;
 be_block_splitter aes_out_splitter (
     .clk(clk),
-    .rst(rst),
+    .rst(aes_rst),
     
     .block_valid(aes_out_valid),
     .block_ready(aes_out_ready),
@@ -105,11 +116,12 @@ key_ram #(
     .WORDS(4)
 ) aes_ctr_ram (
     .clk(clk),
-    .rst(rst),
+    .rst(aes_rst),
     
     .widx(reg_offs[3:2]),
     .wdata(wr_dat),
     .wen(aes_ctr_word_valid),
+    .increment(auto_increment & aes_in_ready & aes_in_valid),
     .stored(aes_ctr)
 );
 
@@ -119,11 +131,12 @@ key_ram #(
     .WORDS(8)
 ) aes_key_ram (
     .clk(clk),
-    .rst(rst),
+    .rst(aes_rst),
     
     .widx(reg_offs[4:2]),
     .wdata(wr_dat),
     .wen(aes_key_word_valid),
+    .increment(1'b0),
     .stored(aes_key)
 );
 
@@ -150,6 +163,7 @@ always @(*) begin
     aes_out_word_ready = 0;
     aes_ctr_word_valid = 0;
     aes_key_word_valid = 0;
+    aes_ctl_wen = 0;
 
     case (state)
         `STATE_EXPECT_ADDR : begin
@@ -170,7 +184,7 @@ always @(*) begin
             
             casez (reg_offs)
                 `REG_AES_CTL : begin
-                    rd_dat = aes_ctl;
+                    rd_dat = aes_ctl_out;
                 end
                 `REG_AES_FIFO_OUT : begin
                     rd_valid = aes_out_word_valid;
@@ -187,6 +201,9 @@ always @(*) begin
             wr_ready = 1'b1;
             
             casez (reg_offs)
+                `REG_AES_CTL : begin
+                    aes_ctl_wen = wr_valid;
+                end
                 `REG_AES_FIFO_IN : begin
                     wr_ready = aes_in_word_ready;
                     aes_in_word_valid = wr_valid;
@@ -213,6 +230,9 @@ end
 always @(posedge clk or posedge rst) begin
     if (rst) state <= 0;
     else state <= next_state;
+
+    if (aes_rst) aes_ctl <= 0;
+    else if (aes_ctl_wen) aes_ctl <= wr_dat;
 end
 always @(posedge clk) begin
     addr <= next_addr;

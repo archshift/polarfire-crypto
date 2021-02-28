@@ -37,7 +37,7 @@ always @* begin
     next_block_valid = idx == 2'b11;
 end
 
- always @(posedge clk or posedge rst) begin
+always @(posedge clk or posedge rst) begin
     if (rst) begin
         idx <= 0;
         block_valid <= 0;
