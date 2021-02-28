@@ -230,10 +230,14 @@ end
 always @(posedge clk or posedge rst) begin
     if (rst) state <= 0;
     else state <= next_state;
+end
 
-    if (aes_rst) aes_ctl <= 0;
+always @(posedge clk or posedge rst) begin
+    if (rst) aes_ctl <= 0;
+    else if (soft_rst) aes_ctl <= 0;
     else if (aes_ctl_wen) aes_ctl <= wr_dat;
 end
+
 always @(posedge clk) begin
     addr <= next_addr;
 end
