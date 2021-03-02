@@ -253,6 +253,16 @@ begin
     `assert(output_vec[6] == 32'ha3179e91);
     `assert(output_vec[7] == 32'hc9af4b2c);
 
+
+    // Test soft-reset
+    `assert(aes_ctr == 128'h2);
+    write_io(32'h0000, 32'h80000000); // reset
+    `assert(aes_ctr == 128'h0);
+
+    // Test write to ctr
+    write_io(32'h001c, 32'h00000001);
+    `assert(aes_ctr == 128'h1);
+
     $finish;
 end
 

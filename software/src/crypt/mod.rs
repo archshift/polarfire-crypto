@@ -8,9 +8,9 @@ use crate::crypt::hw as crypt_impl;
 #[cfg(feature = "sw")]
 use crate::crypt::sw as crypt_impl;
 
-pub type Key = [u32; 8];
-pub type Ctr = [u32; 4];
-pub type Block = [u32; 4];
+pub type Key = [u8; 32];
+pub type Ctr = [u8; 16];
+pub type Block = [u8; 16];
 
 pub fn init() {
     crypt_impl::init();

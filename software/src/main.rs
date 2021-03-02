@@ -1,16 +1,16 @@
 mod crypt;
 
-use std::{str, u32};
+use std::{str, u8};
 use std::io::{Read, stdin, BufReader, BufRead};
 use std::fs::File;
 
-fn hex_to_words(hex: String, out: &mut [u32]) {
+fn hex_to_bytes(hex: String, out: &mut [u8]) {
     let new_hex = hex.replace(" ", "");
     let hex = new_hex.trim();
 
     let bytes = hex.as_bytes()
         .chunks_exact(8)
-        .map(|c| u32::from_str_radix(
+        .map(|c| u8::from_str_radix(
                 str::from_utf8(c).expect("UTF-8 error!"),
                 16)
                 .expect("Byte parsing error!"));
@@ -53,11 +53,11 @@ fn main() {
         .read_to_string(&mut ctr_str)
         .expect("Failed to read ctr!");
 
-    let mut key = [0u32; 8];
-    let mut ctr = [0u32; 4];
+    let mut key = [0u8; 32];
+    let mut ctr = [0u8; 16];
 
-    hex_to_words(key_str, &mut key);
-    hex_to_words(ctr_str, &mut ctr);
+    hex_to_bytes(key_str, &mut key);
+    hex_to_bytes(ctr_str, &mut ctr);
 
     let stdin = stdin();
     let stdin = stdin.lock();

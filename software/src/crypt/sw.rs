@@ -11,8 +11,6 @@ use crate::crypt::{Key, Ctr};
 pub fn init() {}
 
 pub fn crypt(key: Key, ctr: Ctr, data: &[u8], data_out: &mut [u8]) {
-    let key: [u8; 32] = unsafe { transmute(key) };
-    let ctr: [u8; 16] = unsafe { transmute(ctr) };
     let mut cipher = Aes256Ctr::new(&key.into(), &ctr.into());
     data_out.copy_from_slice(data);
     cipher.apply_keystream(data_out);

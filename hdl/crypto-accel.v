@@ -110,7 +110,7 @@ be_block_splitter aes_out_splitter (
     .empty(fifo_out_empty)
 );
 
-`define REG_AES_CTR (16'h001z)
+`define REG_AES_CTR (16'b0000_0000_0001_????) // 0x0010
 reg aes_ctr_word_valid;
 key_ram #(
     .WORDS(4)
@@ -125,7 +125,7 @@ key_ram #(
     .stored(aes_ctr)
 );
 
-`define REG_AES_KEY (16'b0000_0000_0001_zzzz) // 0x0020
+`define REG_AES_KEY (16'b0000_0000_001?_????) // 0x0020
 reg aes_key_word_valid;
 key_ram #(
     .WORDS(8)
@@ -210,6 +210,9 @@ always @(*) begin
                 end
                 `REG_AES_CTR : begin
                     aes_ctr_word_valid = wr_valid;
+                end
+                `REG_AES_KEY : begin
+                    aes_key_word_valid = wr_valid;
                 end
             endcase
             

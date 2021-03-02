@@ -36,26 +36,29 @@ fn rd_reg(reg: AesReg, woffs: usize) -> u32 {
 
 bf!(AesCtrl[u32] {
     reset : 31:31,
+    auto_increment : 30:30,
     ififo_full : 2:2,
     ofifo_empty : 1:1,
     busy : 0:0
 });
 
-fn write_key(key: Key) {
-    for i in 0..8 {
-        wr_reg(AesReg::Key, i, key[i]);
-    }
-}
-fn write_ctr(ctr: [u32; 4]) {
-    for i in 0..4 {
-        wr_reg(AesReg::Ctr, i, ctr[i]);
-    }
-}
 fn take_word(data: &[u8]) -> u32 {
     let mut array = [0; 4];
     let len = 4.min(data.len());
     array[..len].copy_from_slice(&data[..len]);
     u32::from_le_bytes(array)
+}
+fn write_key(key: Key) {
+    for i in 0..8 {
+        let word = take_word(&key[i*4..]);
+        wr_reg(AesReg::Key, i, word);
+    }
+}
+fn write_ctr(ctr: Ctr) {
+    for i in 0..4 {
+        let word = take_word(&ctr[i*4..]);
+        wr_reg(AesReg::Ctr, i, word);
+    }
 }
 fn write_block(data: &[u8]) -> usize {
     let len = 16.min(data.len());
@@ -69,12 +72,12 @@ fn write_block(data: &[u8]) -> usize {
     len
 }
 fn read_block() -> Block {
-    [
-        rd_reg(AesReg::OFifo, 0),
-        rd_reg(AesReg::OFifo, 0),
-        rd_reg(AesReg::OFifo, 0),
-        rd_reg(AesReg::OFifo, 0)
-    ]
+    let mut out = Block::default();
+    for i in 0..4 {
+        let word = rd_reg(AesReg::OFifo, 0);
+        out[i*4..(i+1)*4].copy_from_slice(&word.to_le_bytes());
+    }
+    out
 }
 fn read_write_block(data: &mut &[u8]) -> Option<Block> {
     let ctr = AesCtrl::new(rd_reg(AesReg::Ctrl, 0));
@@ -146,4 +149,11 @@ pub fn init() {
     unsafe {
         MMAP_IO = Some(map());
     }
+    let mut init_ctrl = AesCtrl::new(0);
+    init_ctrl.set_reset(1);
+    wr_reg(AesReg::Ctrl, 0, init_ctrl.val);
+
+    init_ctrl.set_reset(0);
+    init_ctrl.set_auto_increment(1);
+    wr_reg(AesReg::Ctrl, 0, init_ctrl.val);
 }
