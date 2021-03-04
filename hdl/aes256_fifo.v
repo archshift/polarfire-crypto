@@ -44,7 +44,7 @@ module aes256_fifo(
     assign aes_out_valid = !fifo_empty;
     assign empty = aes_pending_blocks == 0;
     
-    always @(posedge clk, posedge rst) begin
+    always @(posedge clk) begin
         if (rst) aes_pending_blocks <= 0;
         else aes_pending_blocks <= aes_pending_blocks_next;
     end

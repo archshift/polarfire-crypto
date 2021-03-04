@@ -35,8 +35,8 @@ always @(SYSCLK)
 // Device Under Test
 //////////////////////////////////////////////////////////////////////
 reg [37:0] wraddr, rdaddr;
-reg [31:0] wr_dat;
-wire [31:0] rd_dat;
+reg [63:0] wr_dat;
+wire [63:0] rd_dat;
 wire [1:0] wrresp_dat, rdresp_dat;
 wire wraddr_ready, rdaddr_ready, wr_ready, wrresp_valid, rd_valid;
 reg wraddr_valid, rdaddr_valid, wr_valid, wrresp_ready, rd_ready;
@@ -103,11 +103,11 @@ aes256_fifo aes (
     .empty(aes_fifo_empty)
 );
 
-function [31:0] bswap(input [31:0] w);
-    bswap = {w[7:0], w[15:8], w[23:16], w[31:24]};
+function [63:0] bswap(input [63:0] w);
+    bswap = {w[7:0], w[15:8], w[23:16], w[31:24], w[39:32], w[47:40], w[55:48], w[63:56]};
 endfunction
 
-task write_io(input [37:0] address, input [31:0] data);
+task write_io(input [37:0] address, input [63:0] data);
     begin
         // Check that we're in the idle state, waiting for an address to come in
         `assert(wraddr_ready);
@@ -150,7 +150,7 @@ task write_io(input [37:0] address, input [31:0] data);
     end
 endtask
 
-task read_io(input [37:0] address, output [31:0] data);
+task read_io(input [37:0] address, output [63:0] data);
     begin
         // Check that we're in the idle state, waiting for an address to come in
         `assert(wraddr_ready);
@@ -181,18 +181,18 @@ task read_io(input [37:0] address, output [31:0] data);
     end
 endtask
 
-reg [31:0] read_out;
-reg [31:0] input_vec [7:0];
-reg [31:0] output_vec [7:0];
+reg [63:0] read_out;
+reg [63:0] input_vec [3:0];
+reg [63:0] output_vec [3:0];
 `define o_fifo_in_full read_out[2]
 `define o_fifo_out_empty read_out[1]
 `define o_busy read_out[0]
 
 // "random" numbers
-integer rng;
-integer prime = 32'd2417361181;
-integer modulus = 32'd3969582061;
-task rng_seed(input integer seed);
+reg [63:0] rng;
+reg [63:0] prime = 64'd6_716_965_329_049_668_409;
+reg [63:0] modulus = 64'd6_589_763_912_653_014_497;
+task rng_seed(input [63:0] seed);
     rng = seed;
 endtask
 task rng_next();
@@ -213,7 +213,7 @@ begin
     #(SYSCLK_PERIOD * 15 )
     @(negedge SYSCLK)
 
-    write_io(32'h0000, 32'h40000000); // enable auto-increment
+    write_io(32'h0000, 64'h40000000); // enable auto-increment
     `assert(crypto_accel.auto_increment);
 
     read_io(32'h0000, read_out);
@@ -222,8 +222,8 @@ begin
     `assert(`o_fifo_out_empty);
 
     rng_seed(prime);
-    for (i = 0; i < 8; i = i+1) begin
-        write_io(32'h0004, bswap(rng));
+    for (i = 0; i < 4; i = i+1) begin
+        write_io(32'h0008, bswap(rng));
         input_vec[i] = rng;
         rng_next();
     end
@@ -237,33 +237,31 @@ begin
         end
         
         // read output
-        for (i = 0; i < 4; i = i+1) begin
+        for (i = 0; i < 2; i = i+1) begin
             read_io(32'h0008, read_out); 
-            output_vec[blk*4 + i] = bswap(read_out);
+            output_vec[blk*2 + i] = bswap(read_out);
             rng_next();
         end
     end
     
-    `assert(output_vec[0] == 32'h4c83c165);
-    `assert(output_vec[1] == 32'h5587bce6);
-    `assert(output_vec[2] == 32'h5efddab2);
-    `assert(output_vec[3] == 32'h9dcf7049);
-    `assert(output_vec[4] == 32'hac596787);
-    `assert(output_vec[5] == 32'hcc304014);
-    `assert(output_vec[6] == 32'ha3179e91);
-    `assert(output_vec[7] == 32'hc9af4b2c);
-
+    `assert(output_vec[0] == 64'h81a2b418_54de42b0);
+    `assert(output_vec[1] == 64'h80acba67_2ad44c57);
+    `assert(output_vec[2] == 64'h79f9bc9f_fe962837);
+    `assert(output_vec[3] == 64'h878647e5_5c2b1415);
 
     // Test soft-reset
     `assert(aes_ctr == 128'h2);
-    write_io(32'h0000, 32'h80000000); // reset
+    write_io(32'h0000, 64'h80000000); // reset
     `assert(aes_ctr == 128'h0);
 
     // Test write to ctr
-    write_io(32'h001c, 32'h00000001);
+    write_io(32'h0018, 64'h00000001);
     `assert(aes_ctr == 128'h1);
 
     $finish;
 end
+
+always @(posedge SYSCLK)
+    $display("%h", crypto_accel.aes_out_splitter.state);
 
 endmodule

@@ -9,7 +9,7 @@ fn hex_to_bytes(hex: String, out: &mut [u8]) {
     let hex = new_hex.trim();
 
     let bytes = hex.as_bytes()
-        .chunks_exact(8)
+        .chunks_exact(2)
         .map(|c| u8::from_str_radix(
                 str::from_utf8(c).expect("UTF-8 error!"),
                 16)

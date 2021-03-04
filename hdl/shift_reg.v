@@ -22,7 +22,7 @@ module shift_reg #(
         end
         
         for (i = 0; i < DEPTH; i = i+1) begin
-            always @(posedge clk or posedge rst) begin
+            always @(posedge clk) begin
                 if (rst) regs[i] <= 0;
                 else regs[i] <= regs_next[i];
             end

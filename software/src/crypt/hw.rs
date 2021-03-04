@@ -1,40 +1,44 @@
-use std::fs::OpenOptions;
+use std::{fs::OpenOptions, mem::size_of};
 
 use bitutils::bf;
 use memmap::{MmapMut, MmapOptions};
 
 use crate::crypt::{Key, Ctr, Block};
 
+type Word = u64;
+const WORD_SIZE: usize = size_of::<Word>();
+const KEY_WORDS: usize = size_of::<Key>() / WORD_SIZE;
+const BLOCK_WORDS: usize = size_of::<Block>() / WORD_SIZE;
+
 #[derive(Copy, Clone, Debug)]
 enum AesReg {
     Ctrl = 0,
-    IFifo = 1,
-    OFifo = 2,
-    Ctr = 4,
-    Key = 8
+    Fifo = 1,
+    Ctr = 2,
+    Key = 4
 }
 
-fn io_ptr() -> *mut u32 {
+fn io_ptr() -> *mut Word {
     let p = unsafe { MMAP_IO.as_mut().unwrap().as_mut_ptr() };
-    p as *mut u32
+    p as *mut Word
 }
 
-fn wr_reg(reg: AesReg, woffs: usize, dat: u32) {
-    assert!(woffs < 0x10000 / 4);
+fn wr_reg(reg: AesReg, woffs: usize, dat: Word) {
+    assert!(woffs < 0x10000 / WORD_SIZE);
     unsafe {
         let ptr = io_ptr().add(reg as usize).add(woffs);
         ptr.write_volatile(dat);
     }
 }
-fn rd_reg(reg: AesReg, woffs: usize) -> u32 {
-    assert!(woffs < 0x10000 / 4);
+fn rd_reg(reg: AesReg, woffs: usize) -> Word {
+    assert!(woffs < 0x10000 / WORD_SIZE);
     unsafe {
         let ptr = io_ptr().add(reg as usize).add(woffs);
         ptr.read_volatile()
     }
 }
 
-bf!(AesCtrl[u32] {
+bf!(AesCtrl[Word] {
     reset : 31:31,
     auto_increment : 30:30,
     ififo_full : 2:2,
@@ -42,40 +46,41 @@ bf!(AesCtrl[u32] {
     busy : 0:0
 });
 
-fn take_word(data: &[u8]) -> u32 {
-    let mut array = [0; 4];
-    let len = 4.min(data.len());
+fn take_word(data: &[u8]) -> Word {
+    let mut array = [0; WORD_SIZE];
+    let len = WORD_SIZE.min(data.len());
     array[..len].copy_from_slice(&data[..len]);
-    u32::from_le_bytes(array)
+    u64::from_le_bytes(array)
 }
 fn write_key(key: Key) {
-    for i in 0..8 {
-        let word = take_word(&key[i*4..]);
+    for i in 0..KEY_WORDS {
+        let word = take_word(&key[i*WORD_SIZE..]);
         wr_reg(AesReg::Key, i, word);
     }
 }
 fn write_ctr(ctr: Ctr) {
-    for i in 0..4 {
-        let word = take_word(&ctr[i*4..]);
+    for i in 0..BLOCK_WORDS {
+        let word = take_word(&ctr[i*WORD_SIZE..]);
         wr_reg(AesReg::Ctr, i, word);
     }
 }
 fn write_block(data: &[u8]) -> usize {
     let len = 16.min(data.len());
-    for i in 0..4 {
-        if let Some(sl) = data.get(i*4 ..) {
-            wr_reg(AesReg::IFifo, 0, take_word(sl));
+    for i in 0..BLOCK_WORDS {
+        if let Some(sl) = data.get(i*WORD_SIZE..) {
+            wr_reg(AesReg::Fifo, 0, take_word(sl));
         } else {
-            wr_reg(AesReg::IFifo, 0, 0);
+            wr_reg(AesReg::Fifo, 0, 0);
         }
     }
     len
 }
 fn read_block() -> Block {
     let mut out = Block::default();
-    for i in 0..4 {
-        let word = rd_reg(AesReg::OFifo, 0);
-        out[i*4..(i+1)*4].copy_from_slice(&word.to_le_bytes());
+    for i in 0..BLOCK_WORDS {
+        let word = rd_reg(AesReg::Fifo, 0);
+        out[i*WORD_SIZE .. (i+1)*WORD_SIZE]
+            .copy_from_slice(&word.to_le_bytes());
     }
     out
 }
@@ -83,14 +88,16 @@ fn read_write_block(data: &mut &[u8]) -> Option<Block> {
     let ctr = AesCtrl::new(rd_reg(AesReg::Ctrl, 0));
     match (ctr.ofifo_empty(), ctr.ififo_full()) {
         (0, 0) => {
-            write_block(data);
+            let written = write_block(data);
+            *data = &data[written..];
             Some(read_block())
         }
         (0, 1) => {
             Some(read_block())
         }
         (1, 0) => {
-            write_block(data);
+            let written = write_block(data);
+            *data = &data[written..];
             None
         }
         (1, 1) => {
@@ -116,13 +123,11 @@ pub fn crypt(key: Key, ctr: Ctr, mut data: &[u8], mut data_out: &mut [u8]) {
     drain_fifo();
     'outer: loop {
         if let Some(block) = read_write_block(&mut data) {
-            for word in block.iter() {
-                if data_out.len() == 0 { break 'outer }
+            if data_out.len() == 0 { break 'outer }
 
-                let bytes_left = 4.min(data_out.len());
-                data_out[..bytes_left].copy_from_slice(&word.to_le_bytes()[..bytes_left]);
-                data_out = &mut data_out[bytes_left..];
-            }
+            let bytes_left = block.len().min(data_out.len());
+            data_out[..bytes_left].copy_from_slice(&block[..bytes_left]);
+            data_out = &mut data_out[bytes_left..];
         }
     }
     drain_fifo();

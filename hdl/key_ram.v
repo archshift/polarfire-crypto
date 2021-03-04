@@ -16,21 +16,31 @@ module key_ram #(
 localparam BLOCK_SIZE = WORD_SIZE * WORDS;
 localparam WORD_BYTES = WORD_SIZE / 8;
 
-// Stores wdata into the N-i word to swap words into the order our IP expects.
+// Byte swap wdata because AES expects BE numbers
+wire [WORD_SIZE-1:0] wdata_be;
+generate
+    genvar b;
+    for (b = 0; b < WORD_BYTES; b = b+1) begin
+        localparam hb = WORD_BYTES - 1 - b;
+        assign wdata_be[(b+1)*8-1 : b*8] = wdata[(hb+1)*8-1 : hb*8];
+    end
+endgenerate
+
+// Stores wdata into the N-i word to complete the byte swap
 reg [BLOCK_SIZE-1:0] stored_next;
 genvar i;
 generate
     for (i = 0; i < WORDS; i = i+1) begin
         always @* begin
             if (i == WORDS - widx - 1)
-                stored_next[(i+1) * WORD_SIZE - 1 : i * WORD_SIZE] = wdata;
+                stored_next[(i+1) * WORD_SIZE - 1 : i * WORD_SIZE] = wdata_be;
             else
                 stored_next[(i+1) * WORD_SIZE - 1 : i * WORD_SIZE] = stored[(i+1) * WORD_SIZE - 1 : i * WORD_SIZE];
         end
     end
 endgenerate
 
-always @(posedge clk, posedge rst) begin
+always @(posedge clk) begin
     if (rst)
         stored <= 0;
     else if (wen)

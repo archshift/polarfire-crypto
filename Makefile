@@ -23,7 +23,7 @@ $(TEST_BUILD_DIR)/.exists :
 	touch $@
 
 $(TESTS_FULL) : $(TEST_BUILD_DIR)/% : stimulus/%.v $(TEST_BUILD_DIR)/.exists $(HDL)
-	iverilog -I stimulus/ $< $(HDL) -o $@
+	iverilog -Wall -pfileline=1 -Wno-timescale -I stimulus/ $< $(HDL) -o $@
 
 clean :
 	rm -rf $(TEST_BUILD_DIR)
