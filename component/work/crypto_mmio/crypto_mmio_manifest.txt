@@ -1,0 +1,11 @@
+Microsemi Corporation - Microsemi Libero Software Release v12.6 (Version 12.900.20.24)
+
+Date      :  Thu Mar  4 00:29:36 2021
+Project   :  /home/gui/Dev/icicle-kit-reference-design/MPFS_ICICLE_eMMC
+Component :  crypto_mmio
+Family    :  PolarFireSoC
+
+
+HDL source files for all Synthesis and Simulation tools:
+    /home/gui/Dev/icicle-kit-reference-design/MPFS_ICICLE_eMMC/component/work/crypto_mmio/crypto_mmio.v
+

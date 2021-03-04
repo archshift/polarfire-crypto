@@ -1,0 +1,12 @@
+Microsemi Corporation - Microsemi Libero Software Release v12.6 (Version 12.900.20.24)
+
+Date      :  Wed Mar  3 02:42:03 2021
+Project   :  /home/gui/Dev/icicle-kit-reference-design/MPFS_ICICLE_eMMC
+Component :  COREAXITOAXICONNECT_C0
+Family    :  PolarFireSoC
+
+
+HDL source files for all Synthesis and Simulation tools:
+    /home/gui/Dev/icicle-kit-reference-design/MPFS_ICICLE_eMMC/component/work/COREAXITOAXICONNECT_C0/COREAXITOAXICONNECT_C0_0/rtl/vlog/core/COREAXITOAXICONNECT.v
+    /home/gui/Dev/icicle-kit-reference-design/MPFS_ICICLE_eMMC/component/work/COREAXITOAXICONNECT_C0/COREAXITOAXICONNECT_C0.v
+
