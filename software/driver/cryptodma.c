@@ -3,23 +3,65 @@
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/dma-mapping.h>
+#include <linux/slab.h>
+#include <linux/uaccess.h>
 #include <asm/page.h>
 
-#define CRYPTDMA_CMD_ALLOC 0
-#define CRYPTDMA_CMD_FREE 1
+#define CRYPTDMA_CMD_MAP 0
+#define CRYPTDMA_CMD_UNMAP 1
 
 struct miscdevice cryptdma_device;
 
-static int cryptdma_cmd_alloc(void * __user *ptr_out, size_t pages, uintptr_t __user *physaddr) {
-    dma_addr_t physaddr_inner;
-    void *out = dma_alloc_coherent(cryptdma_device.this_device, pages * PAGE_SIZE, &physaddr_inner, GFP_USER);
+typedef struct dma_mapping {
+    uintptr_t physaddr;
+    struct page *page;
+    struct dma_mapping *next;
+} dma_mapping_t;
+dma_mapping_t *mappings = NULL;
 
-    *physaddr = physaddr_inner;
-    return out != NULL;
-}
-static int cryptdma_cmd_free(void *ptr, size_t pages, uintptr_t physaddr) {
-    dma_free_coherent(cryptdma_device.this_device, pages * PAGE_SIZE, ptr, physaddr);
+static int cryptdma_cmd_map(void __user *page, uintptr_t __user *physaddr) {
+    int err = 0;
+    dma_mapping_t *new_mapping = (dma_mapping_t *)kmalloc(sizeof *new_mapping, GFP_KERNEL);
+    err = !new_mapping;
+    if (err) goto alloc_err;
+
+    struct vm_area_struct *vmas;
+    uintptr_t page_addr = (uintptr_t)page & ~(PAGE_SIZE - 1);
+    err = pin_user_pages(page_addr, 1, FOLL_LONGTERM | FOLL_PIN, &new_mapping->page, &vmas);
+    if (err) goto pin_err;
+
+    err = dma_map_single(cryptdma_device.this_device, (void *)page_addr, PAGE_SIZE, DMA_BIDIRECTIONAL);
+    if (err) goto map_err;
+    
+    new_mapping->next = mappings;
+    mappings = new_mapping;
     return 0;
+
+map_err:
+    unpin_user_pages(&new_mapping->page, 1);
+pin_err:
+alloc_err:
+    return err;
+}
+
+static int cryptdma_cmd_unmap(uintptr_t physaddr) {
+    int err = 0;
+    dma_mapping_t *found = NULL;
+    for (dma_mapping_t **m = &mappings; *m != NULL; m = &(*m)->next) {
+        if ((*m)->physaddr == physaddr) {
+            found = *m;
+            *m = (*m)->next;
+        }
+    }
+    err = !found;
+    if (err) goto bad_addr;
+
+    unpin_user_pages(&found->page, 1);
+    kfree(found);
+    return 0;
+
+bad_addr:
+    return err;
 }
 
 
@@ -45,16 +87,28 @@ static ssize_t cryptdma_read(struct file *file, char __user *buf,
     return 0;
 }
 
-static ssize_t cryptdma_ioctl(struct file *file, unsigned cmd, unsigned long args)
+static ssize_t cryptdma_ioctl(struct file *file, unsigned cmd, unsigned long args_ptr)
 {
-    size_t *aargs = (size_t *)args;
+    int err = 0;
     switch (cmd) {
-        case CRYPTDMA_CMD_ALLOC:
-            return cryptdma_cmd_alloc((void **)aargs[0], aargs[1], (size_t *)aargs[2]);
-        case CRYPTDMA_CMD_FREE:
-            return cryptdma_cmd_free((void *)aargs[0], aargs[1], aargs[2]);
+        case CRYPTDMA_CMD_MAP: {
+            struct { void __user *ptr; uintptr_t *paddr_out; } args;
+            err = copy_from_user(&args, (void *)args_ptr, sizeof args);
+            if (err) goto copy_err;
+            err = cryptdma_cmd_map(args.ptr, args.paddr_out);
+            return 0;
+        }
+        case CRYPTDMA_CMD_UNMAP: {
+            struct { uintptr_t paddr; } args;
+            err = copy_from_user(&args, (void *)args_ptr, sizeof args);
+            if (err) goto copy_err;
+            err = cryptdma_cmd_unmap(args.paddr);
+            return 0;
+        }
     }
-    return -1;
+    err = -1; // command not found
+copy_err:
+    return err;
 }
 
 
