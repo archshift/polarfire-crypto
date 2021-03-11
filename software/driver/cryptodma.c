@@ -27,16 +27,22 @@ static int cryptdma_cmd_map(void __user *page, uintptr_t __user *physaddr) {
 
     struct vm_area_struct *vmas;
     uintptr_t page_addr = (uintptr_t)page & ~(PAGE_SIZE - 1);
-    err = pin_user_pages(page_addr, 1, FOLL_LONGTERM | FOLL_PIN, &new_mapping->page, &vmas);
+    err = pin_user_pages(page_addr, 1, FOLL_LONGTERM, &new_mapping->page, &vmas);
     if (err) goto pin_err;
 
-    err = dma_map_single(cryptdma_device.this_device, (void *)page_addr, PAGE_SIZE, DMA_BIDIRECTIONAL);
+    dma_addr_t handle = dma_map_single(cryptdma_device.this_device, (void *)page_addr, PAGE_SIZE, DMA_BIDIRECTIONAL);
+    err = handle == 0;
     if (err) goto map_err;
     
+    err = copy_to_user(physaddr, &handle, sizeof handle);
+    if (err) goto copy_err;
+
     new_mapping->next = mappings;
     mappings = new_mapping;
     return 0;
 
+copy_err:
+    dma_unmap_single(cryptdma_device.this_device, handle, PAGE_SIZE, DMA_BIDIRECTIONAL);
 map_err:
     unpin_user_pages(&new_mapping->page, 1);
 pin_err:
@@ -56,6 +62,7 @@ static int cryptdma_cmd_unmap(uintptr_t physaddr) {
     err = !found;
     if (err) goto bad_addr;
 
+    dma_unmap_single(cryptdma_device.this_device, found->physaddr, PAGE_SIZE, DMA_BIDIRECTIONAL);
     unpin_user_pages(&found->page, 1);
     kfree(found);
     return 0;
