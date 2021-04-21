@@ -7,15 +7,23 @@ edition = "2018"
 [lib]
 crate-type = ["staticlib"]
 
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+debug = true
+
 [[bin]]
 name = "polarfire-softaes"
 path = "./src/main.rs"
 
 [features]
 default = []
+use_std = []
 sw = ["aes-ctr"]
 
 [dependencies]
 aes-ctr = {version = "0.6", optional = true}
-bitutils = "3.0"
+bitutils = {version = "3.0", default-features = false}
 memmap = "0.7"

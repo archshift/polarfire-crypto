@@ -19,3 +19,8 @@ pub fn init() {
 pub fn crypt(key: Key, ctr: Ctr, data: &[u8], data_out: &mut [u8]) {
     crypt_impl::crypt(key, ctr, data, data_out);
 }
+
+pub fn crypt_ppage(key: Key, ctr: Ctr, data: &[u64; 512], data_out: &mut [u64; 512],
+        pa: extern fn(usize) -> usize) -> Result<(), ()> {
+    crypt_impl::crypt_ppage(key, ctr, data, data_out, pa)
+}

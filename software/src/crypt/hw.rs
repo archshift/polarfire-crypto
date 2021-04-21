@@ -1,39 +1,41 @@
-use std::{fs::OpenOptions, mem::size_of};
+use core::mem::size_of;
+use core::ptr::{self, NonNull};
+use core::sync::atomic::{fence, Ordering};
 
 use bitutils::bf;
-use memmap::{MmapMut, MmapOptions};
 
+use crate::println;
 use crate::crypt::{Key, Ctr, Block};
 
 type Word = u64;
 const WORD_SIZE: usize = size_of::<Word>();
 const KEY_WORDS: usize = size_of::<Key>() / WORD_SIZE;
 const BLOCK_WORDS: usize = size_of::<Block>() / WORD_SIZE;
+const PAGE_WORDS: usize = 4096 / WORD_SIZE;
 
 #[derive(Copy, Clone, Debug)]
 enum AesReg {
     Ctrl = 0,
-    Fifo = 1,
     Ctr = 2,
-    Key = 4
+    Key = 4,
+    Fifo = 0x200,
 }
 
-fn io_ptr() -> *mut Word {
-    let p = unsafe { MMAP_IO.as_mut().unwrap().as_mut_ptr() };
-    p as *mut Word
+fn io_ptr() -> NonNull<Word> {
+    unsafe { MMAP_IO.unwrap() }
 }
 
 fn wr_reg(reg: AesReg, woffs: usize, dat: Word) {
     assert!(woffs < 0x10000 / WORD_SIZE);
     unsafe {
-        let ptr = io_ptr().add(reg as usize).add(woffs);
+        let ptr = io_ptr().as_ptr().add(reg as usize).add(woffs);
         ptr.write_volatile(dat);
     }
 }
 fn rd_reg(reg: AesReg, woffs: usize) -> Word {
     assert!(woffs < 0x10000 / WORD_SIZE);
     unsafe {
-        let ptr = io_ptr().add(reg as usize).add(woffs);
+        let ptr = io_ptr().as_ptr().add(reg as usize).add(woffs);
         ptr.read_volatile()
     }
 }
@@ -133,26 +135,52 @@ pub fn crypt(key: Key, ctr: Ctr, mut data: &[u8], mut data_out: &mut [u8]) {
     drain_fifo();
 }
 
-fn map() -> MmapMut {
-    let memfile = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open("/dev/mem")
-        .expect("Failed to open /dev/mem!");
+pub fn crypt_ppage(key: Key, ctr: Ctr, data: &[u64; PAGE_WORDS], data_out: &mut [u64; PAGE_WORDS],
+        pa: extern fn(usize) -> usize) -> Result<(), ()> {
+    write_key(key);
+    write_ctr(ctr);
 
-    unsafe {
-        MmapOptions::new()
-            .offset(0x60010000)
-            .len(0x10000)
-            .map_mut(&memfile)
-            .expect("Failed to map AES MMIO!")
+    drain_fifo();
+    fence(Ordering::SeqCst);
+
+    let psrc = pa(data.as_ptr() as usize);
+    let pdst = pa(data_out.as_ptr() as usize);
+    let mut data_out = &mut data_out[..];
+    assert!((psrc | pdst) & 0xFFF == 0);
+
+    let x_size = 128;
+    for i in 0..(0x1000/x_size) {
+        let _dma_to = dma_start(0x60011000, psrc + x_size * i, x_size)?;
+
+        for _bi in 0 .. (x_size / size_of::<Block>()) {
+            while
+               AesCtrl::new(rd_reg(AesReg::Ctrl, 0))
+                    .ofifo_empty() == 1
+            {}
+
+            let block = read_block();
+            unsafe {
+                *(data_out.as_mut_ptr() as *mut Block) = block;
+            }
+            data_out = &mut data_out[BLOCK_WORDS..];
+        }
     }
+
+    drain_fifo();
+    Ok(())
 }
 
-static mut MMAP_IO: Option<MmapMut> = None;
+extern {
+    fn aes_map_mmio() -> Option<NonNull<Word>>;
+    fn dma_map_mmio() -> Option<NonNull<Word>>;
+}
+
+static mut MMAP_IO: Option<NonNull<Word>> = None;
+static mut DMA_IO: Option<NonNull<Word>> = None;
 pub fn init() {
     unsafe {
-        MMAP_IO = Some(map());
+        MMAP_IO = aes_map_mmio();
+        DMA_IO = dma_map_mmio();
     }
     let mut init_ctrl = AesCtrl::new(0);
     init_ctrl.set_reset(1);
@@ -161,4 +189,104 @@ pub fn init() {
     init_ctrl.set_reset(0);
     init_ctrl.set_auto_increment(1);
     wr_reg(AesReg::Ctrl, 0, init_ctrl.val);
+}
+
+
+
+bf!(DmaCtrl[u32] {
+    claim: 0:0,
+    run: 1:1,
+    done: 30:30,
+    error: 31:31
+});
+bf!(DmaCfg[u32] {
+    repeat: 2:2,
+    order: 3:3,
+    wsize: 24:27,
+    rsize: 28:31
+});
+
+#[repr(C)]
+struct DmaClaim {
+    channel: *mut u8
+}
+impl DmaClaim {
+    fn new(channel: *mut u8) -> Option<Self> {
+        unsafe {
+            let r_ctrl = channel.add(0x0) as *mut u32;
+            let mut ctrl = DmaCtrl::new(r_ctrl.read_volatile());
+            if ctrl.claim() == 1 {
+                None
+            } else {
+                // Small chance of racing?
+                ctrl.set_claim(1);
+                r_ctrl.write_volatile(ctrl.val);
+                Some(Self { channel })
+            }
+        }
+    }
+
+    fn done(&self) -> bool {
+        unsafe {
+            let r_ctrl = self.channel.add(0x0) as *mut u32;
+            let ctrl = DmaCtrl::new(r_ctrl.read_volatile());
+            assert!(ctrl.error() == 0);
+            ctrl.done() == 1
+        }
+    }
+}
+impl Drop for DmaClaim {
+    fn drop(&mut self) {
+        unsafe {
+            let r_ctrl = self.channel.add(0x0) as *mut u32;
+            let mut ctrl = DmaCtrl::new(0);
+            ctrl.set_claim(0);
+            r_ctrl.write_volatile(ctrl.val);
+        }
+    }
+}
+
+fn dma_start(dst: usize, src: usize, bytes: usize) -> Result<DmaClaim, ()> {
+    let mut channels = [ptr::null_mut(); 4];
+    for i in 0..4 {
+        channels[i] = unsafe { (DMA_IO.unwrap().as_ptr() as *mut u8).add(i * 0x1000) };
+    }
+
+    let found_claim = channels.iter().copied().filter_map(DmaClaim::new).next();
+
+    if let Some(claim) = found_claim {
+        unsafe {
+            let channel = claim.channel;
+
+            let r_ctrl = channel.add(0x0) as *mut u32;
+            let r_next_config = channel.add(0x4) as *mut u32;
+            let r_next_bytes = channel.add(0x8) as *mut u64;
+            let r_next_dst = channel.add(0x10) as *mut u64;
+            let r_next_src = channel.add(0x18) as *mut u64;
+
+            // We have the claim
+            let mut next_config = DmaCfg::new(0);
+            next_config.set_wsize(3);
+            next_config.set_rsize(3);
+            next_config.set_order(1);
+            r_next_config.write_volatile(next_config.val);
+
+            r_next_bytes.write_volatile(bytes as u64);
+            r_next_dst.write_volatile(dst as u64);
+            r_next_src.write_volatile(src as u64);
+
+            // println!("Starting DMA; config: {:X}, bytes: {:X}, src: {:X}, dst: {:X}",
+                // r_next_config.read_volatile(), r_next_bytes.read_volatile(), r_next_src.read_volatile(), r_next_dst.read_volatile());
+
+            // Start running the DMA
+            let mut ctrl = DmaCtrl::new(r_ctrl.read_volatile());
+            ctrl.set_run(1);
+            r_ctrl.write_volatile(ctrl.val);
+
+            // println!("Started DMA");
+        }
+        Ok(claim)
+    } else {
+        Err(())
+    }
 }
