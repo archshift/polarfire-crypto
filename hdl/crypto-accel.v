@@ -72,7 +72,7 @@ assign {
 
 assign aes_rst = rst | soft_rst;
 
-`define REG_AES_FIFO (16'h0008)
+`define REG_AES_FIFO (16'h1???)
 reg aes_in_word_valid;
 wire aes_in_word_ready;
 wire aes_in_fifo_empty;
