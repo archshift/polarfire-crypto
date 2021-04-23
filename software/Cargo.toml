@@ -1,5 +1,5 @@
 [package]
-name = "polarfire-softaes"
+name = "pfaes"
 version = "0.1.0"
 authors = ["Gui Andrade <gh@archshift.com>"]
 edition = "2018"
@@ -15,7 +15,7 @@ panic = "abort"
 debug = true
 
 [[bin]]
-name = "polarfire-softaes"
+name = "pfaes-bin"
 path = "./src/main.rs"
 
 [features]
@@ -27,3 +27,5 @@ sw = ["aes-ctr"]
 aes-ctr = {version = "0.6", optional = true}
 bitutils = {version = "3.0", default-features = false}
 memmap = "0.7"
+byte-slice-cast = {version = "1.0", default-features = false}
+itertools = {version = "0.10", default-features = false}

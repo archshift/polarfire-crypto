@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "use_std"), no_std)]
 
 mod crypt;
+pub mod utils;
 pub use crypt::{crypt, crypt_ppage, init};
 
 use core::slice;
@@ -36,6 +37,15 @@ use core::{
     },
     panic::PanicInfo,
 };
+
+#[cfg(not(feature = "use_std"))]
+#[macro_export]
+macro_rules! print {
+    ($($tok:tt)*) => {{
+        use core::fmt::Write;
+        write!(crate::DbgWriter, $($tok)*).unwrap()
+    }};
+}
 
 #[cfg(not(feature = "use_std"))]
 #[macro_export]

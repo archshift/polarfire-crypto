@@ -2,6 +2,7 @@ use core::mem::size_of;
 use core::ptr::{self, NonNull};
 use core::sync::atomic::{fence, Ordering};
 
+use byte_slice_cast::*;
 use bitutils::bf;
 
 use crate::println;
@@ -41,8 +42,8 @@ fn rd_reg(reg: AesReg, woffs: usize) -> Word {
 }
 
 bf!(AesCtrl[Word] {
-    reset : 31:31,
-    auto_increment : 30:30,
+    reset : 63:63,
+    auto_increment : 62:62,
     ififo_full : 2:2,
     ofifo_empty : 1:1,
     busy : 0:0
@@ -103,7 +104,7 @@ fn read_write_block(data: &mut &[u8]) -> Option<Block> {
             None
         }
         (1, 1) => {
-            Some(read_block())
+            None
         }
         _ => unreachable!()
     }
@@ -142,27 +143,26 @@ pub fn crypt_ppage(key: Key, ctr: Ctr, data: &[u64; PAGE_WORDS], data_out: &mut 
 
     drain_fifo();
     fence(Ordering::SeqCst);
-
+    
     let psrc = pa(data.as_ptr() as usize);
     let pdst = pa(data_out.as_ptr() as usize);
-    let mut data_out = &mut data_out[..];
+    let data_out = data_out.as_mut_byte_slice();
     assert!((psrc | pdst) & 0xFFF == 0);
 
+    
     let x_size = 128;
-    for i in 0..(0x1000/x_size) {
-        let _dma_to = dma_start(0x60011000, psrc + x_size * i, x_size)?;
+    for xfoffs in (0..0x1000).step_by(x_size) {
+        let _dma_to = dma_start(0x60011000, psrc + xfoffs, x_size)?;
 
-        for _bi in 0 .. (x_size / size_of::<Block>()) {
+        for blkoffs in (0..x_size).step_by(size_of::<Block>()) {
             while
                AesCtrl::new(rd_reg(AesReg::Ctrl, 0))
                     .ofifo_empty() == 1
             {}
 
             let block = read_block();
-            unsafe {
-                *(data_out.as_mut_ptr() as *mut Block) = block;
-            }
-            data_out = &mut data_out[BLOCK_WORDS..];
+            data_out[xfoffs + blkoffs .. xfoffs + blkoffs + block.len()]
+                .copy_from_slice(&block);
         }
     }
 
@@ -268,22 +268,16 @@ fn dma_start(dst: usize, src: usize, bytes: usize) -> Result<DmaClaim, ()> {
             let mut next_config = DmaCfg::new(0);
             next_config.set_wsize(3);
             next_config.set_rsize(3);
-            next_config.set_order(1);
             r_next_config.write_volatile(next_config.val);
 
             r_next_bytes.write_volatile(bytes as u64);
             r_next_dst.write_volatile(dst as u64);
             r_next_src.write_volatile(src as u64);
 
-            // println!("Starting DMA; config: {:X}, bytes: {:X}, src: {:X}, dst: {:X}",
-                // r_next_config.read_volatile(), r_next_bytes.read_volatile(), r_next_src.read_volatile(), r_next_dst.read_volatile());
-
             // Start running the DMA
             let mut ctrl = DmaCtrl::new(r_ctrl.read_volatile());
             ctrl.set_run(1);
             r_ctrl.write_volatile(ctrl.val);
-
-            // println!("Started DMA");
         }
         Ok(claim)
     } else {

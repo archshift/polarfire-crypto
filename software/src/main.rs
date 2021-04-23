@@ -1,46 +1,12 @@
 mod crypt;
+mod utils;
+pub(crate) use std::{print, println};
 
-use std::{str, u8};
+use std::u8;
 use std::io::{Read, stdin, BufReader, BufRead};
 use std::fs::File;
-use std::{fs::OpenOptions, mem::size_of};
+use std::fs::OpenOptions;
 use memmap::{MmapMut, MmapOptions};
-
-fn hex_to_bytes(hex: String, out: &mut [u8]) {
-    let new_hex = hex.replace(" ", "");
-    let hex = new_hex.trim();
-
-    let bytes = hex.as_bytes()
-        .chunks_exact(2)
-        .map(|c| u8::from_str_radix(
-                str::from_utf8(c).expect("UTF-8 error!"),
-                16)
-                .expect("Byte parsing error!"));
-    
-    for (dst, src) in out.iter_mut().zip(bytes) {
-        *dst = src;
-    }
-}
-
-struct HexRowPrinter {
-    seek: usize
-}
-impl HexRowPrinter {
-    fn new() -> Self { Self { seek: 0 } }
-
-    fn append(&mut self, mut bytes: &[u8]) {
-        while bytes.len() != 0 {
-            print!("{:02x}", bytes[0]);
-            if self.seek % 40 == 39 {
-                print!("\n");
-            } else if self.seek % 4 == 3 {
-                print!(" ");
-            }
-            bytes = &bytes[1..];
-            self.seek += 1;
-        }
-    }
-}
 
 fn main() {
     let mut key_str = String::new();
@@ -62,14 +28,14 @@ fn main() {
     let mut key = [0u8; 32];
     let mut ctr = [0u8; 16];
 
-    hex_to_bytes(key_str, &mut key);
-    hex_to_bytes(ctr_str, &mut ctr);
+    utils::hex::hex_to_bytes(&key_str, &mut key);
+    utils::hex::hex_to_bytes(&ctr_str, &mut ctr);
 
     let stdin = stdin();
     let stdin = stdin.lock();
     let mut stdin = BufReader::new(stdin);
     let mut output = vec![0; stdin.capacity()];
-    let mut printer = HexRowPrinter::new();
+    let mut printer = utils::hex::HexRowPrinter::new();
     
     while let Ok(input) = stdin.fill_buf() {
         let in_len = input.len();
