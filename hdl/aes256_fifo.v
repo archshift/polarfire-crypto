@@ -15,6 +15,7 @@ module aes256_fifo(
     output aes_out_valid,
     output [127:0] aes_out_block,
     
+    output [4:0] pending_blks,
     output empty
 );
     wire aes_pipeline_valid;
@@ -23,6 +24,8 @@ module aes256_fifo(
     wire fifo_empty;
     wire aes_rd_trigger = aes_out_ready & aes_out_valid;
     wire aes_wr_trigger = aes_in_ready & aes_in_valid;
+    
+    assign pending_blks = aes_pending_blocks;
 
     aes_256 aes256_pipelined( .clk(clk), .state(aes_ctr), .key(aes_key), .out(aes_cipher_block) );
     shift_reg #(.WIDTH(1), .DEPTH(29)) block_valid_reg( .clk(clk), .rst(rst), .din(aes_wr_trigger), .dout(aes_pipeline_valid) );

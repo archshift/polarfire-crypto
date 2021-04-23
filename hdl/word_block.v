@@ -12,6 +12,7 @@ module be_block_builder(
     output reg block_valid,
     output [127:0] block,
     
+    output reg [1:0] state,
     output reg empty
 );
 
@@ -20,7 +21,7 @@ reg [63:0] block0, block1;
 wire [63:0] word_be = {word[7:0], word[15:8], word[23:16], word[31:24], word[39:32], word[47:40], word[55:48], word[63:56]};
 assign block = {block0, block1};
 
-reg [1:0] state, next_state;
+reg [1:0] next_state;
 `define BUILD_EMPTY 2'h0
 `define BUILD_HAS_W1 2'h1
 `define BUILD_HAS_W2 2'h2
@@ -91,6 +92,7 @@ module be_block_splitter(
     input block_valid,
     input [127:0] block,
     
+    output reg [1:0] state,
     output reg empty
 );
 
@@ -101,7 +103,7 @@ assign {block1, block0} = block_stored;
 reg [63:0] word_be;
 assign word = {word_be[7:0], word_be[15:8], word_be[23:16], word_be[31:24], word_be[39:32], word_be[47:40], word_be[55:48], word_be[63:56]};
 
-reg [1:0] state, next_state;
+reg [1:0] next_state;
 `define SPLIT_AWAIT_BLOCK 2'h0
 `define SPLIT_W0 2'h1
 `define SPLIT_W1 2'h2

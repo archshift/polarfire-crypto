@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////
-// Created by SmartDesign Thu Mar  4 00:29:36 2021
+// Created by SmartDesign Thu Apr 22 16:58:29 2021
 // Version: v12.6 12.900.20.24
 //////////////////////////////////////////////////////////////////////
 
@@ -8,7 +8,7 @@
 // crypto_mmio
 module crypto_mmio(
     // Inputs
-    ARESET,
+    ARESETN,
     CLK,
     SLAVE_ARADDR,
     SLAVE_ARBURST,
@@ -60,7 +60,7 @@ module crypto_mmio(
 //--------------------------------------------------------------------
 // Input
 //--------------------------------------------------------------------
-input         ARESET;
+input         ARESETN;
 input         CLK;
 input  [37:0] SLAVE_ARADDR;
 input  [1:0]  SLAVE_ARBURST;
@@ -116,7 +116,8 @@ wire           aes256_fifo_0_aes_in_ready;
 wire   [127:0] aes256_fifo_0_aes_out_block;
 wire           aes256_fifo_0_aes_out_valid;
 wire           aes256_fifo_0_empty;
-wire           ARESET;
+wire   [4:0]   aes256_fifo_0_pending_blks;
+wire           ARESETN;
 wire   [37:0]  SLAVE_ARADDR;
 wire   [1:0]   SLAVE_ARBURST;
 wire   [3:0]   SLAVE_ARCACHE;
@@ -163,12 +164,15 @@ wire   [0:0]   SLAVE_WUSER;
 wire           SLAVE_WVALID;
 wire           CLK;
 wire   [37:0]  COREAXITOAXICONNECT_C0_0_MASTER_ARADDR;
+wire   [2:0]   COREAXITOAXICONNECT_C0_0_MASTER_ARPROT;
 wire           COREAXITOAXICONNECT_C0_0_MASTER_ARVALID;
 wire   [37:0]  COREAXITOAXICONNECT_C0_0_MASTER_AWADDR;
+wire   [2:0]   COREAXITOAXICONNECT_C0_0_MASTER_AWPROT;
 wire           COREAXITOAXICONNECT_C0_0_MASTER_AWVALID;
 wire           COREAXITOAXICONNECT_C0_0_MASTER_BREADY;
 wire           COREAXITOAXICONNECT_C0_0_MASTER_RREADY;
-wire   [63:0]  COREAXITOAXICONNECT_C0_0_MASTER_WDATA_2;
+wire   [63:0]  COREAXITOAXICONNECT_C0_0_MASTER_WDATA_3;
+wire   [7:0]   COREAXITOAXICONNECT_C0_0_MASTER_WSTRB;
 wire           COREAXITOAXICONNECT_C0_0_MASTER_WVALID;
 wire   [127:0] crypto_accel_0_aes_ctr;
 wire   [127:0] crypto_accel_0_aes_in_block;
@@ -176,14 +180,30 @@ wire           crypto_accel_0_aes_in_valid;
 wire   [255:0] crypto_accel_0_aes_key;
 wire           crypto_accel_0_aes_out_ready;
 wire           crypto_accel_0_aes_rst;
-wire   [63:0]  crypto_accel_0_rd_dat_1;
-wire           crypto_accel_0_rd_valid;
-wire           crypto_accel_0_rdaddr_ready;
-wire   [1:0]   crypto_accel_0_rdresp_dat;
-wire           crypto_accel_0_wr_ready;
-wire           crypto_accel_0_wraddr_ready;
-wire   [1:0]   crypto_accel_0_wrresp_dat;
-wire           crypto_accel_0_wrresp_valid;
+wire           crypto_accel_0_ctl_busy;
+wire           crypto_accel_0_ctl_ififo_full;
+wire           crypto_accel_0_ctl_ofifo_empty;
+wire   [63:0]  crypto_accel_0_fifo_rdata;
+wire   [0:0]   SoftAES_regs_0_ctl_auto_inc;
+wire   [0:0]   SoftAES_regs_0_ctl_rst;
+wire           SoftAES_regs_0_ctl_strobe;
+wire   [0:0]   SoftAES_regs_0_ctr_addr_1;
+wire   [63:0]  SoftAES_regs_0_ctr_wdata;
+wire   [0:0]   SoftAES_regs_0_ctr_wen;
+wire   [0:0]   SoftAES_regs_0_fifo_ren;
+wire   [63:0]  SoftAES_regs_0_fifo_wdata;
+wire   [0:0]   SoftAES_regs_0_fifo_wen;
+wire   [1:0]   SoftAES_regs_0_key_addr_1;
+wire   [63:0]  SoftAES_regs_0_key_wdata;
+wire   [0:0]   SoftAES_regs_0_key_wen;
+wire           SoftAES_regs_0_s_axi_arready;
+wire           SoftAES_regs_0_s_axi_awready;
+wire   [1:0]   SoftAES_regs_0_s_axi_bresp;
+wire           SoftAES_regs_0_s_axi_bvalid;
+wire   [63:0]  SoftAES_regs_0_s_axi_rdata;
+wire   [1:0]   SoftAES_regs_0_s_axi_rresp;
+wire           SoftAES_regs_0_s_axi_rvalid;
+wire           SoftAES_regs_0_s_axi_wready;
 wire           AXI4_SLAVE_AWREADY_net_0;
 wire           AXI4_SLAVE_WREADY_net_0;
 wire           AXI4_SLAVE_BVALID_net_0;
@@ -212,7 +232,7 @@ assign GND_net    = 1'b0;
 //--------------------------------------------------------------------
 // Inversions
 //--------------------------------------------------------------------
-assign rst_IN_POST_INV0_0 = ~ ARESET;
+assign rst_IN_POST_INV0_0 = ~ ARESETN;
 //--------------------------------------------------------------------
 // Top level output port assignments
 //--------------------------------------------------------------------
@@ -259,7 +279,8 @@ aes256_fifo aes256_fifo_0(
         .aes_in_ready  ( aes256_fifo_0_aes_in_ready ),
         .aes_out_valid ( aes256_fifo_0_aes_out_valid ),
         .empty         ( aes256_fifo_0_empty ),
-        .aes_out_block ( aes256_fifo_0_aes_out_block ) 
+        .aes_out_block ( aes256_fifo_0_aes_out_block ),
+        .pending_blks  ( aes256_fifo_0_pending_blks ) 
         );
 
 //--------COREAXITOAXICONNECT_C0
@@ -271,12 +292,12 @@ COREAXITOAXICONNECT_C0 COREAXITOAXICONNECT_C0_0(
         .SLAVE_BREADY    ( SLAVE_BREADY ),
         .SLAVE_ARVALID   ( SLAVE_ARVALID ),
         .SLAVE_RREADY    ( SLAVE_RREADY ),
-        .MASTER_AWREADY  ( crypto_accel_0_wraddr_ready ),
-        .MASTER_WREADY   ( crypto_accel_0_wr_ready ),
-        .MASTER_BVALID   ( crypto_accel_0_wrresp_valid ),
-        .MASTER_ARREADY  ( crypto_accel_0_rdaddr_ready ),
+        .MASTER_AWREADY  ( SoftAES_regs_0_s_axi_awready ),
+        .MASTER_WREADY   ( SoftAES_regs_0_s_axi_wready ),
+        .MASTER_BVALID   ( SoftAES_regs_0_s_axi_bvalid ),
+        .MASTER_ARREADY  ( SoftAES_regs_0_s_axi_arready ),
         .MASTER_RLAST    ( GND_net ), // tied to 1'b0 from definition
-        .MASTER_RVALID   ( crypto_accel_0_rd_valid ),
+        .MASTER_RVALID   ( SoftAES_regs_0_s_axi_rvalid ),
         .SLAVE_AWID      ( SLAVE_AWID ),
         .SLAVE_AWADDR    ( SLAVE_AWADDR ),
         .SLAVE_AWLEN     ( SLAVE_AWLEN ),
@@ -303,10 +324,10 @@ COREAXITOAXICONNECT_C0 COREAXITOAXICONNECT_C0_0(
         .SLAVE_WUSER     ( SLAVE_WUSER ),
         .SLAVE_ARUSER    ( SLAVE_ARUSER ),
         .MASTER_BID      ( GND_net ), // tied to 1'b0 from definition
-        .MASTER_BRESP    ( crypto_accel_0_wrresp_dat ),
+        .MASTER_BRESP    ( SoftAES_regs_0_s_axi_bresp ),
         .MASTER_RID      ( GND_net ), // tied to 1'b0 from definition
-        .MASTER_RDATA    ( crypto_accel_0_rd_dat_1 ),
-        .MASTER_RRESP    ( crypto_accel_0_rdresp_dat ),
+        .MASTER_RDATA    ( SoftAES_regs_0_s_axi_rdata ),
+        .MASTER_RRESP    ( SoftAES_regs_0_s_axi_rresp ),
         .MASTER_BUSER    ( GND_net ), // tied to 1'b0 from definition
         .MASTER_RUSER    ( GND_net ), // tied to 1'b0 from definition
         // Outputs
@@ -336,11 +357,11 @@ COREAXITOAXICONNECT_C0 COREAXITOAXICONNECT_C0_0(
         .MASTER_AWBURST  (  ),
         .MASTER_AWLOCK   (  ),
         .MASTER_AWCACHE  (  ),
-        .MASTER_AWPROT   (  ),
+        .MASTER_AWPROT   ( COREAXITOAXICONNECT_C0_0_MASTER_AWPROT ),
         .MASTER_AWQOS    (  ),
         .MASTER_AWREGION (  ),
-        .MASTER_WDATA    ( COREAXITOAXICONNECT_C0_0_MASTER_WDATA_2 ),
-        .MASTER_WSTRB    (  ),
+        .MASTER_WDATA    ( COREAXITOAXICONNECT_C0_0_MASTER_WDATA_3 ),
+        .MASTER_WSTRB    ( COREAXITOAXICONNECT_C0_0_MASTER_WSTRB ),
         .MASTER_ARID     (  ),
         .MASTER_ARADDR   ( COREAXITOAXICONNECT_C0_0_MASTER_ARADDR ),
         .MASTER_ARLEN    (  ),
@@ -348,7 +369,7 @@ COREAXITOAXICONNECT_C0 COREAXITOAXICONNECT_C0_0(
         .MASTER_ARBURST  (  ),
         .MASTER_ARLOCK   (  ),
         .MASTER_ARCACHE  (  ),
-        .MASTER_ARPROT   (  ),
+        .MASTER_ARPROT   ( COREAXITOAXICONNECT_C0_0_MASTER_ARPROT ),
         .MASTER_ARQOS    (  ),
         .MASTER_ARREGION (  ),
         .MASTER_AWUSER   (  ),
@@ -359,35 +380,80 @@ COREAXITOAXICONNECT_C0 COREAXITOAXICONNECT_C0_0(
 //--------crypto_accel
 crypto_accel crypto_accel_0(
         // Inputs
-        .clk            ( CLK ),
-        .rst            ( rst_IN_POST_INV0_0 ),
-        .wraddr_valid   ( COREAXITOAXICONNECT_C0_0_MASTER_AWVALID ),
-        .wr_valid       ( COREAXITOAXICONNECT_C0_0_MASTER_WVALID ),
-        .wrresp_ready   ( COREAXITOAXICONNECT_C0_0_MASTER_BREADY ),
-        .rdaddr_valid   ( COREAXITOAXICONNECT_C0_0_MASTER_ARVALID ),
-        .rd_ready       ( COREAXITOAXICONNECT_C0_0_MASTER_RREADY ),
-        .aes_in_ready   ( aes256_fifo_0_aes_in_ready ),
-        .aes_out_valid  ( aes256_fifo_0_aes_out_valid ),
-        .aes_fifo_empty ( aes256_fifo_0_empty ),
-        .wraddr         ( COREAXITOAXICONNECT_C0_0_MASTER_AWADDR ),
-        .wr_dat         ( COREAXITOAXICONNECT_C0_0_MASTER_WDATA_2 ),
-        .rdaddr         ( COREAXITOAXICONNECT_C0_0_MASTER_ARADDR ),
-        .aes_out_block  ( aes256_fifo_0_aes_out_block ),
+        .clk              ( CLK ),
+        .rst              ( rst_IN_POST_INV0_0 ),
+        .ctl_strobe       ( SoftAES_regs_0_ctl_strobe ),
+        .ctl_auto_inc     ( SoftAES_regs_0_ctl_auto_inc ),
+        .ctl_rst          ( SoftAES_regs_0_ctl_rst ),
+        .ctr_addr         ( SoftAES_regs_0_ctr_addr_1 ),
+        .ctr_wdata        ( SoftAES_regs_0_ctr_wdata ),
+        .ctr_wen          ( SoftAES_regs_0_ctr_wen ),
+        .key_addr         ( SoftAES_regs_0_key_addr_1 ),
+        .key_wdata        ( SoftAES_regs_0_key_wdata ),
+        .key_wen          ( SoftAES_regs_0_key_wen ),
+        .fifo_wdata       ( SoftAES_regs_0_fifo_wdata ),
+        .fifo_wen         ( SoftAES_regs_0_fifo_wen ),
+        .fifo_ren         ( SoftAES_regs_0_fifo_ren ),
+        .aes_in_ready     ( aes256_fifo_0_aes_in_ready ),
+        .aes_out_valid    ( aes256_fifo_0_aes_out_valid ),
+        .aes_out_block    ( aes256_fifo_0_aes_out_block ),
+        .aes_fifo_empty   ( aes256_fifo_0_empty ),
+        .aes_pending_blks ( aes256_fifo_0_pending_blks ),
         // Outputs
-        .wraddr_ready   ( crypto_accel_0_wraddr_ready ),
-        .wr_ready       ( crypto_accel_0_wr_ready ),
-        .wrresp_valid   ( crypto_accel_0_wrresp_valid ),
-        .rdaddr_ready   ( crypto_accel_0_rdaddr_ready ),
-        .rd_valid       ( crypto_accel_0_rd_valid ),
-        .aes_in_valid   ( crypto_accel_0_aes_in_valid ),
-        .aes_out_ready  ( crypto_accel_0_aes_out_ready ),
-        .aes_rst        ( crypto_accel_0_aes_rst ),
-        .wrresp_dat     ( crypto_accel_0_wrresp_dat ),
-        .rd_dat         ( crypto_accel_0_rd_dat_1 ),
-        .rdresp_dat     ( crypto_accel_0_rdresp_dat ),
-        .aes_key        ( crypto_accel_0_aes_key ),
-        .aes_ctr        ( crypto_accel_0_aes_ctr ),
-        .aes_in_block   ( crypto_accel_0_aes_in_block ) 
+        .ctl_busy         ( crypto_accel_0_ctl_busy ),
+        .ctl_ofifo_empty  ( crypto_accel_0_ctl_ofifo_empty ),
+        .ctl_ififo_full   ( crypto_accel_0_ctl_ififo_full ),
+        .fifo_rdata       ( crypto_accel_0_fifo_rdata ),
+        .aes_key          ( crypto_accel_0_aes_key ),
+        .aes_ctr          ( crypto_accel_0_aes_ctr ),
+        .aes_in_valid     ( crypto_accel_0_aes_in_valid ),
+        .aes_in_block     ( crypto_accel_0_aes_in_block ),
+        .aes_out_ready    ( crypto_accel_0_aes_out_ready ),
+        .aes_rst          ( crypto_accel_0_aes_rst ) 
+        );
+
+//--------SoftAES_regs
+SoftAES_regs SoftAES_regs_0(
+        // Inputs
+        .axi_aclk        ( CLK ),
+        .axi_aresetn     ( ARESETN ),
+        .s_axi_awaddr    ( COREAXITOAXICONNECT_C0_0_MASTER_AWADDR ),
+        .s_axi_awprot    ( COREAXITOAXICONNECT_C0_0_MASTER_AWPROT ),
+        .s_axi_awvalid   ( COREAXITOAXICONNECT_C0_0_MASTER_AWVALID ),
+        .s_axi_wdata     ( COREAXITOAXICONNECT_C0_0_MASTER_WDATA_3 ),
+        .s_axi_wstrb     ( COREAXITOAXICONNECT_C0_0_MASTER_WSTRB ),
+        .s_axi_wvalid    ( COREAXITOAXICONNECT_C0_0_MASTER_WVALID ),
+        .s_axi_araddr    ( COREAXITOAXICONNECT_C0_0_MASTER_ARADDR ),
+        .s_axi_arprot    ( COREAXITOAXICONNECT_C0_0_MASTER_ARPROT ),
+        .s_axi_arvalid   ( COREAXITOAXICONNECT_C0_0_MASTER_ARVALID ),
+        .s_axi_rready    ( COREAXITOAXICONNECT_C0_0_MASTER_RREADY ),
+        .s_axi_bready    ( COREAXITOAXICONNECT_C0_0_MASTER_BREADY ),
+        .ctl_busy        ( crypto_accel_0_ctl_busy ),
+        .ctl_ofifo_empty ( crypto_accel_0_ctl_ofifo_empty ),
+        .ctl_ififo_full  ( crypto_accel_0_ctl_ififo_full ),
+        .fifo_rdata      ( crypto_accel_0_fifo_rdata ),
+        // Outputs
+        .s_axi_awready   ( SoftAES_regs_0_s_axi_awready ),
+        .s_axi_wready    ( SoftAES_regs_0_s_axi_wready ),
+        .s_axi_arready   ( SoftAES_regs_0_s_axi_arready ),
+        .s_axi_rdata     ( SoftAES_regs_0_s_axi_rdata ),
+        .s_axi_rresp     ( SoftAES_regs_0_s_axi_rresp ),
+        .s_axi_rvalid    ( SoftAES_regs_0_s_axi_rvalid ),
+        .s_axi_bresp     ( SoftAES_regs_0_s_axi_bresp ),
+        .s_axi_bvalid    ( SoftAES_regs_0_s_axi_bvalid ),
+        .ctl_strobe      ( SoftAES_regs_0_ctl_strobe ),
+        .ctl_auto_inc    ( SoftAES_regs_0_ctl_auto_inc ),
+        .ctl_rst         ( SoftAES_regs_0_ctl_rst ),
+        .ctr_addr        ( SoftAES_regs_0_ctr_addr_1 ),
+        .ctr_wdata       ( SoftAES_regs_0_ctr_wdata ),
+        .ctr_wen         ( SoftAES_regs_0_ctr_wen ),
+        .key_addr        ( SoftAES_regs_0_key_addr_1 ),
+        .key_wdata       ( SoftAES_regs_0_key_wdata ),
+        .key_wen         ( SoftAES_regs_0_key_wen ),
+        .fifo_addr       (  ),
+        .fifo_wdata      ( SoftAES_regs_0_fifo_wdata ),
+        .fifo_wen        ( SoftAES_regs_0_fifo_wen ),
+        .fifo_ren        ( SoftAES_regs_0_fifo_ren ) 
         );
 
 
